@@ -34,9 +34,11 @@ After it calculates the same data, you will now see graphs of each instance-type
 	IMAGE HERE
 
 Now, re-calculating the optimal instances is kind of pointless on the same data, so in order to save and load optimal instance configurations, use this::
+
 	python EMRio.py --save-optimized=output.txt
 
 Which will save the results in output.txt, and load them like so::
+
 	python EMRio.py --optimized=output.txt
 
 If you want to see all the commands, try --help.
