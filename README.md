@@ -22,11 +22,13 @@ Dependencies
 How to Run EMRio
 ----------------
 Once you have the dependencies installed, you just run::
+
 	python EMRio.py
 
 This should take a minute or two to grab the information off S3, do a few simulations, and output the resultant optimized instance pool. 
 
 If you want to see instance usage over time (how many instances are running at the same time), you run::
+
 	python EMRio.py --graph cost
 
 After it calculates the same data, you will now see graphs of each instance-type's usage over time, like this::
