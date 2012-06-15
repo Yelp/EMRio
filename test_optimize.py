@@ -133,5 +133,6 @@ class TestOptimizeFunctions(TestCase):
 		self.assertEquals(optimized[MEDIUM_UTIL], reserve_log)
 		self.assertEquals(optimized[HEAVY_UTIL], reserve_log)
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
+
 if __name__ == '__main__':
 	unittest.main()

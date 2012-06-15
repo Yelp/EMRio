@@ -59,7 +59,29 @@ def predict_future_billing_multiplier(file_name, current_date, future_time,
 
 
 def predict_future(current_date, future_date, types):
-	""" This is the same as the above function but for a single id"""
+	"""Uses linear regression to find a multiplier for future dates.
+
+	In order to properly buy reserved instances in the future, we need
+	a way to look into the future hours used. If we can find how many
+	hours were used compared to the amount we are already using, we just
+	multiply all the hours obtained from the simulations by a 'multiplier'
+	which is obtained from the function.
+
+	Args:
+		future_date: a datetime object based on how far in the future you want
+			to predict the amount of hours used to.
+
+		current_date: a datetime object of the current time that we are at.
+			This can be set to in the past if you want to test this function.
+
+		types: a dict of instance_types with billed hours for them. Currently
+			there is only one type called 'match' so that all the instance types
+			are aggregated instead of separate.
+
+	Returns:
+		multiplier: A float to multiply hours by to get future usage hours.
+
+	"""
 
 	if types.get("match", None) is None:
 		return 0
@@ -94,9 +116,18 @@ def make_option_parser():
 
 
 def parse_billing_csv(file_name):
-	"""Given a csv file, parse the file into an array of dicts. Each dict
-	stores the key name given from the first line of the csv file, and the
-	value is of the value of a row of data for that given key.
+	"""Parses a file into CSV objects.
+
+	This function takes a csv filename as input and will use that to break
+	down each line into an object where the column rows are the keys and the
+	rows values are the values.
+
+	Args:
+		file_name: Where the CSV file is located.
+
+	Returns:
+		csv_objects: A list of column: row-value pairs parsed from the CSV files.
+
 	"""
 	parsed_csv = []
 	with open(file_name, 'rb') as f:
@@ -112,9 +143,20 @@ def parse_billing_csv(file_name):
 
 
 def separate_ids(billing_info):
-	""" If there is more than one id in the billing data, this will
-	find each id and make it a key of a dict. The value is a list of
-	objects that have that id in it.
+	""" Separates CSV objects into individual account types.
+
+	An Amazon Billing CSV file can have more than one account type
+	for billing purposes. We usually want to isolate one of those
+	account types, so this function puts CSV objects into individual
+	account ids, so that we know which bill goes with which account.
+
+	Args:
+		billing_info: A list of CSV objects where the keys are CSV columns
+			and the rows are the values.
+
+	Returns:
+		accounts: A dict with keys that are account types and values that are
+			lists of CSV objects that have that account id.
 	"""
 	# Identify all the ids in the info
 	ids = set()
@@ -134,21 +176,44 @@ def separate_ids(billing_info):
 
 
 def show_billing_graph(account, id):
-	"""account is a list of objects corresponding to an account. This
-	function just filters the billing objects and then displays the data
-	in a graph.
+	"""Creates a graph with the account info.
+
+	This function will take an account's CSV object list and use it to make
+	make a graph showing the billing amount for each month, then make a
+	linear regression line on it to show what the slope for the multiplier
+	used in predict_future is in graph form. It shows the outliers not used
+	as well which is helpful.
+
+	Args:
+		account: A list of CSV objects for a specific account to graph.
+		id: The account id to display on the name of the graph.
+
+	Returns:
+		nothing
 	"""
 	types = filter_bills(account)
 	graph_bills(types, id)
 
 
 def filter_bills(account):
-	"""Since we only want EMR data usage, we need to remove any irrelevant billing
-	information. This function will remove anything that doesn't use EMR and
-	uses a hack that stores all the instance_types in a single key called 'match'
-	to aggregate the data into a overall hours instead of individual types.
-	Keeping it this way in case we want to change back to individual instance
-	types, which is just removing the string 'match' to the variable match
+	"""Filters out data that is not EMR billing info.
+
+	The CSV objects hold things from S3 storage to Cloud Compute costs.
+	We don't care about most of this data, except for EMR data. This function
+	takes a CSV object list and will remove any objects from it, and then
+	classify the EMR instance type billing that it belongs to.
+
+	NOTE: As of right now, type aggregates all the CSV instance types into
+	a cumulative sum called "match". To change this, remove the string and
+	put match variable in.
+
+	Args:
+		account: List of CSV objects for a given account.
+
+	Returns:
+		types: A dict filled with aggregate sums of billing for a given
+			instance type (currently total aggregate sum). It is structured
+			where the bill_date is the key, and the usage amount is the value.
 	"""
 	types = {}
 	for bill in account:
@@ -168,9 +233,25 @@ def filter_bills(account):
 
 
 def filter_outliers(i_type_nodes):
-	"""Will look at the standard deviation and mean and filter out
-	things that are not within two standard devaitions of the mean.
-	Returns 4 lists of usage, dates, outlier usage, and outlier dates.
+	"""Remove billing months with huge deviations from other billing months.
+
+	Computes the standard deviation and will remove and billing months that have
+	large differences from the mean amount.
+
+	Args:
+		i_type_nodes: A dict where the keys are the datetimes that billing occured
+			and values are the amount of hours used for that date.
+
+	Returns (In order):
+		usage_list: A list of all the nodes that are not outliers.
+
+		date_list: A list of dates that do not have outliers. Index is
+			associatively related to usage_list.
+
+		outlier_list: A list of all nodes that ARE outliers.
+
+		outlier_dates: A list of dates that the outliers occurred on. Index is
+			associatively related to outlier_list.
 	"""
 	date_list = []
 	usage_list = []
@@ -203,8 +284,16 @@ def filter_outliers(i_type_nodes):
 
 
 def graph_bills(types, id):
-	"""For each type of bill (instance type), filter the outliers and then
-	display the regression line, relevant data points, and outliers"""
+	"""The function that graphs all the bills.
+
+	Args:
+		types: A dict where the key is the instance type and values
+			are dicts of datetime_billed: hours_used.
+
+		id: Name of the account where the billing info came from.
+
+	Returns: Nothing.
+	"""
 	for i_type in types:
 		months = mdates.MonthLocator()
 		formatter = mdates.DateFormatter("%m/%Y ")

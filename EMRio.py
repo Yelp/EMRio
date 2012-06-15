@@ -100,49 +100,6 @@ def main(args):
 		total_hours_graph(job_flows, pool)
 
 
-def job_flow_handler(options):
-	"""This will check the options and use a file if provided or
-	will get the job_flow data from amazon's cluster if no file
-	is provided
-
-	returns job_flows
-	"""
-	job_filter = JobFilter(options)
-	job_flows = []
-	if(options.file_inputs):
-		job_flows = handle_job_flows_file(options.file_inputs)
-	else:
-		job_flows = get_job_flows_amazon(options)
-	job_flows = job_filter.filter_jobs(job_flows)
-
-	# sort job flows before running simulations.
-	job_flows = sorted(job_flows, cmp=sort_by_job_times)
-	return job_flows
-
-
-def write_optimal_instances(filename, pool):
-	"""Save optimal results since the data doesn't change too much for a given
-	job flow."""
-	f = open(filename, 'w')
-	for util in pool:
-		for machine in pool[util].keys():
-			f.write("%s,%s,%d\n" % (util, machine, pool[util][machine]))
-	f.close()
-
-
-def read_optimal_instances(filename):
-	"""Reads in a file if it is provided by from the command line
-	instead of doing the simulation optimization which is slow.
-	"""
-	pool = EC2.init_empty_reserve_pool()
-	f = open(filename, 'r')
-	for line in f:
-		util, machine, count = line.split(',')
-		util = util
-		pool[util][machine] = int(count)
-	return pool
-
-
 def make_option_parser():
 	usage = '%prog [options]'
 	description = 'Print a giant report on EMR usage.'
@@ -190,12 +147,65 @@ def make_option_parser():
 	return option_parser
 
 
-def handle_job_flows_file(filename):
-	"""If you specify a file of job_flow objects, this
-	function loads them. Will try comma-separated JSON
-	objects and per-line objects before failing.
+def job_flow_handler(options):
+	"""This will check the options and use a file if provided or
+	will get the job_flow data from amazon's cluster if no file
+	is provided
 
+	Args:
+		options: An OptionParser object that has args stored in it.
+
+	Returns:
+		job_flows: A list of dicts of jobs that have run over a period of time.
+	"""
+	job_filter = JobFilter(options)
+	job_flows = []
+	if(options.file_inputs):
+		job_flows = handle_job_flows_file(options.file_inputs)
+	else:
+		job_flows = get_job_flows_amazon(options)
+	job_flows = job_filter.filter_jobs(job_flows)
+
+	# sort job flows before running simulations.
+	job_flows = sorted(job_flows, cmp=sort_by_job_times)
 	return job_flows
+
+
+def write_optimal_instances(filename, pool):
+	"""Save optimal results since the data doesn't change too much for a given
+	job flow.
+
+	Args:
+		filename: name of file.
+
+		pool: A dict of optimal reserved instances to buy.
+
+	Returns: Nothing
+	"""
+	f = open(filename, 'w')
+	for util in pool:
+		for machine in pool[util].keys():
+			f.write("%s,%s,%d\n" % (util, machine, pool[util][machine]))
+	f.close()
+
+
+def read_optimal_instances(filename):
+	"""Reads in a file of optimized instances instead of doing the simulation
+	optimization which is slow.
+	"""
+
+	pool = EC2.init_empty_reserve_pool()
+	f = open(filename, 'r')
+	for line in f:
+		util, machine, count = line.split(',')
+		util = util
+		pool[util][machine] = int(count)
+	return pool
+
+
+def handle_job_flows_file(filename):
+	"""If you specify a file of job_flow objects, this function loads them. Will
+	try comma-separated JSON objects and per-line objects before failing.
 	"""
 	try:
 		current_file = open(filename, 'r')
@@ -214,8 +224,6 @@ def handle_job_flows_file(filename):
 def get_job_flows_amazon(options):
 	"""gets all the job flows from amazon and converts them into
 	a dict for compatability with loading from a file
-
-	returns: job_flows
 	"""
 	now = datetime.datetime.utcnow()
 	job_flows = get_job_flows(options.conf_path, options.max_days_ago, now=now)
@@ -231,11 +239,17 @@ def get_job_flows_amazon(options):
 	return job_flows
 
 
-def output_statistics(log, pool, default_log,):
-	"""Once everything is calculated, output here
+def sort_by_job_times(job1, job2):
+	"""Sorting comparator for job_flow objects"""
+	date1 = job1.get('startdatetime')
+	date2 = job2.get('startdatetime')
+	return_time = -1 if date1 < date2 else 1
+	return return_time
 
-	returns: nothing
-	"""
+
+def output_statistics(log, pool, default_log,):
+	"""Once everything is calculated, output here"""
+
 	optimized_cost = EC2.calculate_cost(log, pool)
 	demand_cost = EC2.calculate_cost(default_log, EMPTY_INSTANCE_POOL)
 
@@ -261,14 +275,6 @@ def output_statistics(log, pool, default_log,):
 	print "Cost for Reserved Instance: ", optimized_cost
 	print "Cost for all On-Demand: ", demand_cost
 	print "Money Saved: ", (demand_cost - optimized_cost)
-
-
-def sort_by_job_times(job1, job2):
-	"""Sorting comparator for job_flow objects"""
-	date1 = job1.get('startdatetime')
-	date2 = job2.get('startdatetime')
-	return_time = -1 if date1 < date2 else 1
-	return return_time
 
 
 #### Stuff taken from mrjob.tools.emr.audit_usage #####
@@ -357,6 +363,7 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 				created_before = datetime.utcnow()
 			created_before -= timedelta(weeks=2)
 	return all_job_flows
+
 
 if __name__ == '__main__':
 	main(sys.argv[1:])

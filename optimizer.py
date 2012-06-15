@@ -1,35 +1,35 @@
-# The optimizer module holds all the functions relating to creating the
-# best instance pool that yields the least cost over an interval of time.
-# it takes a job flow and runs multiple simulations on the same data with
-# different reserved instance pool configurations. Optimizer takes into
-# account different utilization levels, different instance types and also
-# accounts for the weird HEAVY UTILIZATION payment cost (in EC2 class).
-#
-# Some useful definitions of variables used a lot are given below:
-#
-# 'pool'- This is a storage variable that holds the amount of instances
-#		currently bought. Since there are multiple levels of util levels
-#		and multiple instance types, the layout of pool is like this:
-# pool = {
-#	UTILIZATION_LEVEL: {
-#		INSTANCE_NAME: INSTANCE_COUNT
-#	}
-# }
-# UTILIZATION_LEVEL is an int that corresponds to util levels found here:
-# 		http://aws.amazon.com/ec2/reserved-instances/#2
-# INSTANCE_NAMES is the name that amazon uses for their instance types.
-# INSTANCE_COUNT is how many instances are 'bought' for that simulation.
-#
-# logs- is the amount of hours that an instance type at a util level has run
-#		in the span of the job flows. It is structured the same as pool except
-#		INSTANCE_COUNT is hours.
-#
-# job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
-#		based on the boto JobFlow object, except in dict form. Currently, we
-#		only use start and end times, jobflowids, and instancegroups and
-#		instancegroup objects. More info can be found here:
-# 		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
+"""The optimizer module holds all the functions relating to creating the
+best instance pool that yields the least cost over an interval of time.
+it takes a job flow and runs multiple simulations on the same data with
+different reserved instance pool configurations. Optimizer takes into
+account different utilization levels, different instance types and also
+accounts for the weird HEAVY UTILIZATION payment cost (in EC2 class).
 
+Some useful definitions of variables used a lot are given below:
+
+'pool'- This is a storage variable that holds the amount of instances
+		currently bought. Since there are multiple levels of util levels
+		and multiple instance types, the layout of pool is like this:
+pool = {
+	UTILIZATION_LEVEL: {
+		INSTANCE_NAME: INSTANCE_COUNT
+	}
+}
+UTILIZATION_LEVEL is an int that corresponds to util levels found here:
+		http://aws.amazon.com/ec2/reserved-instances/#2
+INSTANCE_NAMES is the name that amazon uses for their instance types.
+INSTANCE_COUNT is how many instances are 'bought' for that simulation.
+
+logs- is the amount of hours that an instance type at a util level has run
+		in the span of the job flows. It is structured the same as pool except
+		INSTANCE_COUNT is hours.
+
+job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
+		based on the boto JobFlow object, except in dict form. Currently, we
+		only use start and end times, jobflowids, and instancegroups and
+		instancegroup objects. More info can be found here:
+		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
+"""
 from ec2_cost import EC2
 from simulate_jobs import simulate_job_flows
 from math import ceil
@@ -129,9 +129,15 @@ def zero_instance_types(job_flows, pool):
 			'm1.small': 0, 'm1.large': 0
 		}
 	}
+	Args:
+		job_flows: A filtered list of job dictionaries.
 
-	returns: nothing
-	mutates: pool
+		pool: A dict of utilization level dictionaries with nothing in them.
+
+	Mutates:
+		pool: for each utilization type, it fills in all the instance_types
+			that any job uses.
+	Returns: Nothing
 	"""
 	for job in job_flows:
 		for instance in job.get('instancegroups'):
@@ -141,16 +147,25 @@ def zero_instance_types(job_flows, pool):
 
 
 def convert_to_yearly_hours(logs, interval):
-	"""Takes a min and max time and will convert to the amount
-	of hours estimated for a year
+	"""Takes a min and max time and will convert to the amount of hours estimated
+	for a year.
 
 	example: If interval was 2 months, we want the yearly cost
 	so this would convert the 2 months into 60 days and then
 	would multiply all the hours in logs by 365.0 / 60 to get the yearly
 	amount used.
 
-	returns: nothing
-	mutates: logs
+	Args:
+		logs: The hours that each utilization type and each instance of that util
+			that has been calculated in a simulation.
+
+		interval: The span of time (timedelta) that the all the job flows ran in.
+
+	Mutates:
+		logs: Will multiply all the hours used by each instance type by the
+			conversion rate calculated.
+
+	Returns: nothing
 	"""
 	days_per_year = 365.0
 	conversion_rate = 365.0

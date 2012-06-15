@@ -1,62 +1,63 @@
-# SIMULATE JOBS
-#
-# This module is used to simulate job flows over a period of time and give back
-# the hours used for each instance type by the job flows. You also pass in a
-# reserved instance pool which the simulator will use to allocate jobs to when
-# it can, according to Amazon's guidelines on reserved instances. It will
-# record the individual utilization types of reserved instances so you can get
-# detailed hour usage on the reserved instances.
-#
-# In order to read the job sim code, you need to understand how Amazon bills
-# for reserved instances vs on-demand. Basically, if there are reserved
-# instances of a type available, the hour will be charged for reserved.
-# Amazon will use High Util -> Med Util -> Light since it is the most
-# optimized for billing.
-#
-# The job simulator works by breaking each job into hours it ran. Then using
-# an instance pool that a user or another program inputs that tells how many
-# Heavy, Medium and Light Util instances of a type you have. The jobs will be
-# ran on these instances if they are available, otherwise they are on-demand.
-#
-# Some useful definitions of variables used a lot are given below:
-# 'pool'- This is a storage variable that holds the amount of instances
-#		currently bought. Since there are multiple levels of utilization
-#		and multiple instance types, the layout of pool is like this:
-# pool = {
-#	UTILIZATION_LEVEL: {
-#		INSTANCE_NAME: INSTANCE_COUNT
-#	}
-# }
-# UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
-# 		http://aws.amazon.com/ec2/reserved-instances/#2
-# INSTANCE_NAMES is the name that amazon uses for their instance types.
-# INSTANCE_COUNT is how many instances are 'bought' for that simulation.
-#
-# used_pool- is the same as pool but is used to keep track of instances in
-#		use while pool describes how many you have.
-#
-# logs- is the amount of hours that an instance type at a util level has run
-#		in the span of the job flows. It is structured the same as pool except
-#		INSTANCE_COUNT is hours ran.
-#
-# job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
-#		based on the boto JobFlow object, except in dict form. Currently, we
-#		only use start and end times, jobflowids, and instancegroups and
-#		instancegroup objects. More info can be found here:
-# 		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
-#
-# jobs_running (sometimes called jobs) - This is a dict of currently running
-#		jobs in the simulator. This is how it is structured:
-#
-# jobs_running = {
-#	JOB_ID: {
-#		UTILIZATION_LEVEL: {
-#			INSTANCE_TYPE: INSTANCE_COUNT
-#		}
-#	}
-# }
-# JOB_ID is the id for the job running. The rest is setup like logs and pool.
-#		It is used to keep track of what the job is currently using in instances.
+""" SIMULATE JOBS
+
+This module is used to simulate job flows over a period of time and give back
+the hours used for each instance type by the job flows. You also pass in a
+reserved instance pool which the simulator will use to allocate jobs to when
+it can, according to Amazon's guidelines on reserved instances. It will
+record the individual utilization types of reserved instances so you can get
+detailed hour usage on the reserved instances.
+
+In order to read the job sim code, you need to understand how Amazon bills
+for reserved instances vs on-demand. Basically, if there are reserved
+instances of a type available, the hour will be charged for reserved.
+Amazon will use High Util -> Med Util -> Light since it is the most
+optimized for billing.
+
+The job simulator works by breaking each job into hours it ran. Then using
+an instance pool that a user or another program inputs that tells how many
+Heavy, Medium and Light Util instances of a type you have. The jobs will be
+ran on these instances if they are available, otherwise they are on-demand.
+
+Some useful definitions of variables used a lot are given below:
+'pool'- This is a storage variable that holds the amount of instances
+		currently bought. Since there are multiple levels of utilization
+		and multiple instance types, the layout of pool is like this:
+pool = {
+	UTILIZATION_LEVEL: {
+		INSTANCE_NAME: INSTANCE_COUNT
+	}
+}
+UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
+		http://aws.amazon.com/ec2/reserved-instances/#2
+INSTANCE_NAMES is the name that amazon uses for their instance types.
+INSTANCE_COUNT is how many instances are 'bought' for that simulation.
+
+used_pool- is the same as pool but is used to keep track of instances in
+		use while pool describes how many you have.
+
+logs- is the amount of hours that an instance type at a util level has run
+		in the span of the job flows. It is structured the same as pool except
+		INSTANCE_COUNT is hours ran.
+
+job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
+		based on the boto JobFlow object, except in dict form. Currently, we
+		only use start and end times, jobflowids, and instancegroups and
+		instancegroup objects. More info can be found here:
+		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
+
+jobs_running (sometimes called jobs) - This is a dict of currently running
+		jobs in the simulator. This is how it is structured:
+
+jobs_running = {
+	JOB_ID: {
+		UTILIZATION_LEVEL: {
+			INSTANCE_TYPE: INSTANCE_COUNT
+		}
+	}
+}
+JOB_ID is the id for the job running. The rest is setup like logs and pool.
+		It is used to keep track of what the job is currently using in instances.
+"""
 
 import datetime
 from heapq import heapify, heappop
@@ -71,17 +72,26 @@ END = 0
 
 
 def simulate_job_flows(job_flows, pool, logger=None):
-	"""Given a job flow and instance pool, this function will act as if it
-	is running the jobs and return a log of how many hours each instance ran
-	and in what utilization they ran in.
+	"""Will simulate a job flow using a reserved instance pool.
 
-	job_flows-- type:list of jobs (which are dicts)
-		use: to run the jobs in the list with reserved instances.
-	instance_pool-- type: dict of util constants (holding dict values)
-		use: to tell the simulator the reserved instances you "bought"
-	logger-- type: function
-		use: Give the logger data each pass of the simulator, which it
-			stores the data it wants.
+	The purpose of this function is to record an on-demand job flow history
+	as if it was on reserved instances, and then log results of how many hours
+	the reserved instances were used.
+
+	Args:
+		job_flows: list of jobs (which are dicts) which run the jobs in the list
+			with reserved instances.
+
+		instance_pool: dict of util constants (holding dict values) to tell the
+			simulator the reserved instances you "bought"
+
+		logger: a function that logs data each pass of the simulator. This way
+			each pass of the simulator can be recorded instead of cumulative sums
+			of logs.
+
+	Returns:
+		log: A dict that holds the cumulative hours ran on all instance types and
+			utilization levels.
 	"""
 	# Setup stage. Setup the queue, state variables and logger.
 	priority_queue = setup_priority_events(job_flows)
@@ -126,19 +136,24 @@ def simulate_job_flows(job_flows, pool, logger=None):
 
 
 def setup_priority_events(job_flows):
-	"""Create a priority queue where the events are the
+	"""Sets up node events for the simulator.
+
+	Create a priority queue where the events are the
 	start and end times of jobs, with intermediate log-hour
 	events for switching to reserved instances and logging hours of jobs.
 
-	The reason for LOG events, is because each hour a job runs, it has a
+	NOTE: The reason for LOG events, is because each hour a job runs, it has a
 	chance that a reserved instance has opened up. If it has opened up, then
 	it needs to switch billing to that open instance. One cannot calculate when
 	this happens with only just START and END events.
 
-	job_flows -- description at top
-	returns: a priority queue of event tuples: (TIME, EVENT_TYPE, job)
-		TIME -- datetime the event occurs at.
-		EVENT_TYPE -- START, LOG or END.
+	Args:
+		job_flows -- Used to break apart each job into events.
+
+	Returns:
+		pq: a priority queue of event tuples: (TIME, EVENT_TYPE, job)
+			TIME -- datetime the event occurs at.
+			EVENT_TYPE -- START, LOG or END.
 	"""
 	priority_queue = []
 	for job in job_flows:
@@ -165,6 +180,18 @@ def setup_priority_events(job_flows):
 def default_logger(time, event_type, job, logged_hours, pool_used):
 	"""Do nothing, overwrite if you want richer
 	information from the simulator.
+	Args:
+		time: Time the event occurred at.
+
+		event_type: START, LOG, or END event.
+
+		job: The current job that the event occurred for.
+
+		logged_hours: The sum of the logged hours up to this point.
+
+		pool_used: The current instances and their types used at this point in time.
+
+	Returns: Nothing.
 	"""
 	pass
 
@@ -181,9 +208,18 @@ def log_hours(log, jobs, job_id):
 
 
 def allocate_job(jobs, pool_used, pool, job):
-	"""When a job event is fired, or reallocation is required,
+	"""Puts a job in job_running and allocates necessary instances to it.
+
+	When a job event is fired, or reallocation is required,
 	this function will go through the instance pool and try to find an open
-	utilization starting from the best priority and working its way down.
+	utilization starting from the best priority and working its way down. It
+	fills in as many instances it can for each utilization level.
+
+	Args:
+		jobs: a dict of jobs running and their instance usage. Used to
+			put the current job into it.
+
+		pool_used: a dict of current instances in use. Use to allocate jobs.
 	"""
 	job_id = job.get('jobflowid')
 
@@ -215,9 +251,21 @@ def allocate_job(jobs, pool_used, pool, job):
 
 def remove_job(jobs, pool_used, job):
 	"""Removes a job when it has ended from the current job flow.
-	This will release any pool usage that the job was using.
 
-	mutates: jobs and pool_used"""
+	Args:
+		jobs: a dict of currently running jobs.
+
+		pool_used: A dict of all the instances in use.
+
+		job: The current job that is being deallocated.
+
+	Mutates:
+		jobs: Removes the job from the currently running jobs.
+		pool_used: Removes instances that the job was using, so they are
+			now free.
+
+	Returns: None.
+	"""
 	job_id = job.get('jobflowid')
 
 	# Remove all the pool used by the instance then delete the job.
@@ -232,12 +280,26 @@ def remove_job(jobs, pool_used, job):
 
 
 def rearrange_instances(jobs, pool_used, pool, job):
-	"""If a job has relinquished its reserved instances, another job can
+	""" Moves job instance usage around when possible.
+
+	If a job has relinquished its reserved instances, another job can
 	pick them up. This function will remove all the currently pooled job
 	instances and then re-pool to gain any reserved instances if there are some.
 
-	mutates: pool_used, jobs
-	returns: nothing
+	Args:
+		jobs: a dict of jobs currently running and the instances they use.
+
+		pool_used: A dict of what instances are currently in use.
+
+		pool: A constant dict that lists all the reserved instances you have 'bought'
+
+		job: Current job needing reallocation.
+
+	Mutates:
+		pool_used: May rearrange the instance usage if there is a better combination
+		jobs: rearranges job instances.
+
+	Returns: Nothing
 	"""
 	job_id = job.get('jobflowid')
 

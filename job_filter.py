@@ -36,7 +36,7 @@ class JobFilter:
 		that are not within the filter-requirements specified by each function
 		added to the filter.
 
-		returns:  job_flows that has have only relevant jobs in it.
+		Returns:  job_flows that has have only relevant jobs in it.
 		"""
 		new_jobs = []
 		for job in job_flows:
@@ -53,9 +53,15 @@ class JobFilter:
 	def convert_dates(self, job, timezone):
 		"""Converts the dates of all the jobs to the datetime object
 		since they are originally in unicode strings
+		Args:
+			job: Current job being filtered.
+			timezone: The timezone that we want to calculate everything in.
 
-		returns: Nothing.
-		mutates: job startdatetime and job enddatetime
+		Mutates:
+			job.startdatetime: Changes from unicode to datetime.
+			job.enddatetime: Changes from unicode to datetime
+
+		Returns: Nothing.
 		"""
 		start_date = job.get('startdatetime', None)
 		end_date = job.get('enddatetime', None)
@@ -75,7 +81,8 @@ class JobFilter:
 		"""Looks at a job and sees if it is missing a start or end date,
 		which screws up simulations, so we remove them with this filter.
 
-		returns: boolean of whether the date is valid
+		Returns:
+			boolean of whether the date is valid
 		"""
 		if job.get('startdatetime') is None or job.get('enddatetime') is None:
 			return False
@@ -86,7 +93,8 @@ class JobFilter:
 		"""If there is a min or max day, check to see if the job is within the bounds
 		of the range, and remove any that are not.
 
-		returns: boolean of whether the job is within date range.
+		Returns:
+			boolean of whether the job is within date range.
 		"""
 		if getattr(self, 'min_days', None):
 			if job['startdatetime'] < self.min_days:

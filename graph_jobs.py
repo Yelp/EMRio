@@ -1,7 +1,7 @@
-# This tool uses a logger to pull information from a simulation of jobs.
-# Once it has that information, it will use that and matplotlib to make
-# a graph on the type of graph you specified in the options of instance_tool.
-
+""" This tool uses a logger to pull information from a simulation of jobs.
+Once it has that information, it will use that and matplotlib to make
+a graph on the type of graph you specified in the options of instance_tool.
+"""
 import matplotlib.pyplot as plt
 import copy
 import matplotlib.dates as mdates

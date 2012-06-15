@@ -18,7 +18,7 @@ INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 20
 JOB = 'job1'
 EMPTY_POOL = EC2.init_empty_reserve_pool()
-
+EMPTY_LOG = EC2.init_empty_all_instance_types()
 HEAVY_POOL = {
 	HEAVY_UTIL: {INSTANCE_NAME: BASE_INSTANCES},
 	MEDIUM_UTIL: {},
@@ -37,6 +37,9 @@ JOBS_RUNNING = {
 
 def create_test_job(instance_name, count, j_id, start_time=CURRENT_TIME,
 	end_time=(CURRENT_TIME + INCREMENT)):
+	"""Creates a test job dictionary that is similar to the structure of
+	a normal job but with a lot less irrelevant data
+	"""
 	job1 = {'instancegroups': create_test_instancegroup(instance_name, count),
 	'jobflowid': j_id, 'startdatetime': start_time, 'enddatetime': end_time}
 	return job1
@@ -150,6 +153,21 @@ class TestOptimizeFunctions(TestCase):
 			HEAVY_POOL)
 		self.assertEqual(log[HEAVY_UTIL], reserve_log)
 		self.assertEqual(log[DEMAND], demand_log)
+
+	def test_empty_jobs(self):
+		"""If there are no jobs, the simulation produces an empty log."""
+		current_jobs = []
+		log = simulate_jobs.simulate_job_flows(current_jobs, HEAVY_POOL)
+		self.assertEqual(log, EMPTY_LOG)
+
+	def test_empty_pool(self):
+		"""An empty pool (pool = {}) is malformed and should raise an error."""
+		current_jobs = [create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j1')]
+		try:
+			simulate_jobs.simulate_job_flows(current_jobs, {})
+			self.assertTrue(False)  # This shouldn't execute.
+		except KeyError:
+			self.assertTrue(True)
 
 if __name__ == '__main__':
 	unittest.main()
