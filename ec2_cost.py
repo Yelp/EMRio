@@ -30,6 +30,7 @@ UPFRONT_COST is the cost to buy this machine for a year (0 for demand)
 
 If you need a reference, take a look at ec2/test_price.py
 """
+
 import copy
 from ec2.west_coast_prices import COST, RESERVE_PRIORITIES
 

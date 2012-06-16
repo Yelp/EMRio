@@ -1,4 +1,6 @@
-# This is the price list and utility types for west coast prices.
+# West Coast(North California) 1 Year Prices as of 6/14/2012
+#
+# This is the price list and utility types for west coast california prices.
 # Anything listed as infinity price means that it is not offered on the
 # west coast but is still an available instance type. If you believe your
 # job flows will never use them, then you don't need to include them.

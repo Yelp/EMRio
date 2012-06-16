@@ -2,6 +2,8 @@ from unittest import TestCase
 import unittest
 import optimizer
 import datetime
+import copy
+from math import ceil
 
 from ec2_cost import EC2Info
 from ec2.test_prices import *
@@ -18,6 +20,9 @@ BASE_INSTANCES = 10
 JOB_AMOUNT = 5
 DAY_INCREMENT = datetime.timedelta(1, 0)
 EMPTY_POOL = EC2.init_empty_reserve_pool()
+EMPTY_LOG = EC2.init_empty_all_instance_types()
+DEFAULT_LOG = copy.deepcopy(EMPTY_LOG)
+DEFAULT_LOG[MEDIUM_UTIL][INSTANCE_NAME] = 100
 
 
 def create_parallel_jobs(amount, start_time=BASETIME,
@@ -73,18 +78,6 @@ class TestOptimizeFunctions(TestCase):
 		optimized = optimizer.optimize_instance_pool(current_jobs, DAY_INCREMENT)
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
 
-	def test_demand(self):
-		"""All the jobs in parallel will not utilize enough time, this is equivalent
-		to how some companies start up large amount of jobs at the same time. They
-		should all go to demand utilization since they are spikes."""
-		end_time = BASETIME + DEMAND_INTERVAL
-		current_jobs = create_parallel_jobs(JOB_AMOUNT, end_time=end_time)
-
-		empty_type = {INSTANCE_NAME: 0}
-		optimized = optimizer.optimize_instance_pool(current_jobs, DAY_INCREMENT)
-		for util in optimized:
-			self.assertEquals(optimized[util], empty_type)
-
 	def test_sequential_jobs(self):
 		"""The additive sum of sequential jobs should utilize 30 percent of
 		a total day, which qualifies it for LIGHT_UTIL of the instance amount.
@@ -133,6 +126,48 @@ class TestOptimizeFunctions(TestCase):
 		self.assertEquals(optimized[MEDIUM_UTIL], reserve_log)
 		self.assertEquals(optimized[HEAVY_UTIL], reserve_log)
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
+
+	def test_zero_jobs(self):
+		"""This should return a zero instance pool since no jobs are ran"""
+		no_jobs = []
+		optimized = optimizer.optimize_instance_pool(no_jobs, DAY_INCREMENT)
+		self.assertEqual(optimized, EMPTY_POOL)
+
+	def test_spikey_jobs(self):
+		"""This test will create a large number of job instances (100s) that run
+		only a small period of time, making them poor choices for reserves."""
+		end_time = BASETIME + DEMAND_INTERVAL
+		current_jobs = create_parallel_jobs(JOB_AMOUNT * 100, end_time=end_time)
+
+		empty_type = {INSTANCE_NAME: 0}
+		optimized = optimizer.optimize_instance_pool(current_jobs, DAY_INCREMENT)
+		for util in optimized:
+			self.assertEquals(optimized[util], empty_type)
+
+	def test_interval_converter_two_months(self):
+		"""If using 2 months worth of data, it should multiply all the values by 6
+		to get a yearly prediction"""
+		logs = copy.deepcopy(DEFAULT_LOG)
+		logs_after = copy.deepcopy(DEFAULT_LOG)
+
+		# Converter is very precise, but by days, so it can't just be * 6,
+		# more like 6.08333.
+		logs_after[MEDIUM_UTIL][INSTANCE_NAME] = ceil(
+			logs_after[MEDIUM_UTIL][INSTANCE_NAME] * (365.0 / 60.0))
+		interval = datetime.timedelta(60, 0)
+		optimizer.convert_to_yearly_hours(logs, interval)
+		self.assertEqual(logs, logs_after)
+
+	def test_interval_converter_two_years(self):
+		"""Since we only want logs for one year, this should
+		conver the hours to half the original hours."""
+		logs = copy.deepcopy(DEFAULT_LOG)
+		logs_after = copy.deepcopy(DEFAULT_LOG)
+		logs_after[MEDIUM_UTIL][INSTANCE_NAME] = ceil(
+			logs_after[MEDIUM_UTIL][INSTANCE_NAME] * (1.0 / 2.0))
+		interval = datetime.timedelta(365.0 * 2, 0)
+		optimizer.convert_to_yearly_hours(logs, interval)
+		self.assertEqual(logs, logs_after)
 
 if __name__ == '__main__':
 	unittest.main()

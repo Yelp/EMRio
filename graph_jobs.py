@@ -9,6 +9,7 @@ from pytz import timezone
 
 from simulate_jobs import simulate_job_flows
 from ec2_cost import EC2
+
 TIME = timezone('US/Alaska')
 COLORS = EC2.color_scheme()
 
