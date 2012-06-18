@@ -31,8 +31,8 @@ job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
 		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
 """
 from ec2_cost import EC2
-from simulate_jobs import simulate_job_flows
 from math import ceil
+from simulate_jobs import Simulator
 
 
 def optimize_instance_pool(job_flows, job_flows_interval=None):
@@ -64,12 +64,13 @@ def brute_force_optimize(instance_type, job_flows, pool, job_flows_interval):
 	returns: nothing
 	mutates: pool
 	"""
+	simulator = Simulator(job_flows, pool)
 	previous_cost = float('inf')
 	current_min_cost = float("inf")
 	current_cost = float('inf')
 	current_min_instances = EC2.init_reserve_counts()
 	# Calculate the default cost first.
-	logs = simulate_job_flows(job_flows, pool)
+	logs = simulator.run()
 	convert_to_yearly_hours(logs, job_flows_interval)
 	current_min_cost = EC2.calculate_cost(logs, pool)
 	current_cost = current_min_cost
@@ -78,25 +79,28 @@ def brute_force_optimize(instance_type, job_flows, pool, job_flows_interval):
 	# previous instance was the best, so stop there.
 	while previous_cost >= current_cost:
 		current_simulation_costs = EC2.init_reserve_counts()
-		for util in current_simulation_costs:
-			current_simulation_costs[util] = float('inf')
+		for utilization_class in current_simulation_costs:
+			current_simulation_costs[utilization_class] = float('inf')
 
 		# Add a single instance to each utilization type, and record the costs.
 		# whichever is the minimum, and choose it.
-		for util in pool:
+		for utilization_class in pool:
 			# Reset the min instances to the best values.
 			for current_util in pool:
 				pool[current_util][instance_type] = current_min_instances[current_util]
-			pool[util][instance_type] = current_min_instances[util] + 1
-			logs = simulate_job_flows(job_flows, pool)
+			pool[utilization_class][instance_type] = (
+					current_min_instances[utilization_class] + 1
+				)
+			logs = simulator.run()
 			convert_to_yearly_hours(logs, job_flows_interval)
-			current_simulation_costs[util] = EC2.calculate_cost(logs, pool)
+			current_simulation_costs[utilization_class] = EC2.calculate_cost(logs, pool)
 		previous_cost = current_cost
+		print previous_cost, ' ', current_cost
 		current_cost = min(current_simulation_costs.values())
 		min_util_level = None
-		for util in current_simulation_costs:
-			if current_simulation_costs[util] == current_cost:
-				min_util_level = util
+		for utilization_class in current_simulation_costs:
+			if current_simulation_costs[utilization_class] == current_cost:
+				min_util_level = utilization_class
 
 		# Record the new cost, then check to see if adding one instance is better
 		# If it is not, then break from the loop, since adding more will be worst.
@@ -107,10 +111,12 @@ def brute_force_optimize(instance_type, job_flows, pool, job_flows_interval):
 			current_min_instances[min_util_level] += 1
 		# Reset to best instance pool.
 		for current_util in pool:
-			pool[current_util][instance_type] = current_min_instances[util]
+			pool[current_util][instance_type] = current_min_instances[utilization_class]
 
-	for util in current_min_instances:
-		pool[util][instance_type] = current_min_instances[util]
+	for utilization_class in current_min_instances:
+		pool[utilization_class][instance_type] = (
+				current_min_instances[utilization_class]
+			)
 
 
 def zero_instance_types(job_flows, pool):

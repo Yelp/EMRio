@@ -10,14 +10,16 @@
 # Some useful definitions of variables used a lot are given below:
 #
 # 'pool'- This is a storage variable that holds the amount of instances
-#		currently bought. Since there are multiple levels of util levels
+#		currently bought. Since there are multiple levels of
+# utilization_class levels
 #		and multiple instance types, the layout of pool is like this:
 # pool = {
 #	UTILIZATION_LEVEL: {
 #		INSTANCE_NAME: INSTANCE_COUNT
 #	}
 # }
-# UTILIZATION_LEVEL is an int that corresponds to util levels found here:
+# UTILIZATION_LEVEL is an int that corresponds to
+# utilization_class levels found here:
 # 		http://aws.amazon.com/ec2/reserved-instances/#2
 # INSTANCE_NAMES is the name that amazon uses for their instance types.
 # INSTANCE_COUNT is how many instances are 'bought' for that simulation.
@@ -52,10 +54,10 @@ except ImportError:
 
 
 from ec2_cost import EC2
-from simulate_jobs import simulate_job_flows
-from graph_jobs import cost_graph, total_hours_graph
+from simulate_jobs import Simulator
+#from graph_jobs import cost_graph, total_hours_graph
 from job_filter import JobFilter
-from optimizer import optimize_instance_pool, convert_to_yearly_hours
+from optimizer import convert_to_yearly_hours, optimize_instance_pool
 
 
 # This is used for calculating on-demand usage.
@@ -65,9 +67,6 @@ EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
 def main(args):
 	option_parser = make_option_parser()
 	options, args = option_parser.parse_args(args)
-
-	if args:
-		option_parser.error('takes no arguments')
 
 	job_flows = job_flow_handler(options)
 
@@ -83,15 +82,17 @@ def main(args):
 
 	if options.save is not None:
 		write_optimal_instances(options.save, pool)
-	logs = simulate_job_flows(job_flows, pool)
+	optimal_simulator = Simulator(job_flows, pool)
+	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL)
+	optimal_logged_hours = optimal_simulator.run()
+	demand_logged_hours = demand_simulator.run()
 
 	# Default_log is the log of hours used for purely on demand instances
 	# with no reserved instances purchased for comparison later.
-	default_log = simulate_job_flows(job_flows, EMPTY_INSTANCE_POOL)
-	convert_to_yearly_hours(default_log, interval_job_flows)
-	convert_to_yearly_hours(logs, interval_job_flows)
+	convert_to_yearly_hours(demand_logged_hours, interval_job_flows)
+	convert_to_yearly_hours(optimal_logged_hours, interval_job_flows)
 
-	output_statistics(logs, pool, default_log)
+	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
 	# Graph stuff if specified.
 	if options.graph == 'cost':
@@ -163,7 +164,7 @@ def job_flow_handler(options):
 	if(options.file_inputs):
 		job_flows = handle_job_flows_file(options.file_inputs)
 	else:
-		job_flows = get_job_flows_amazon(options)
+		job_flows = get_job_flows_from_amazon(options)
 	job_flows = job_filter.filter_jobs(job_flows)
 
 	# sort job flows before running simulations.
@@ -183,9 +184,10 @@ def write_optimal_instances(filename, pool):
 	Returns: Nothing
 	"""
 	f = open(filename, 'w')
-	for util in pool:
-		for machine in pool[util].keys():
-			f.write("%s,%s,%d\n" % (util, machine, pool[util][machine]))
+	for utilization_class in pool:
+		for machine in pool[utilization_class].keys():
+			f.write("%s,%s,%d\n" %
+					(utilization_class, machine, pool[utilization_class][machine]))
 	f.close()
 
 
@@ -197,9 +199,9 @@ def read_optimal_instances(filename):
 	pool = EC2.init_empty_reserve_pool()
 	f = open(filename, 'r')
 	for line in f:
-		util, machine, count = line.split(',')
-		util = util
-		pool[util][machine] = int(count)
+		utilization_class, machine, count = line.split(',')
+		utilization_class = utilization_class
+		pool[utilization_class][machine] = int(count)
 	return pool
 
 
@@ -221,7 +223,7 @@ def handle_job_flows_file(filename):
 	return job_flows
 
 
-def get_job_flows_amazon(options):
+def get_job_flows_from_amazon(options):
 	"""gets all the job flows from amazon and converts them into
 	a dict for compatability with loading from a file
 	"""
@@ -247,29 +249,29 @@ def sort_by_job_times(job1, job2):
 	return return_time
 
 
-def output_statistics(log, pool, default_log,):
+def output_statistics(log, pool, demand_log,):
 	"""Once everything is calculated, output here"""
 
 	optimized_cost = EC2.calculate_cost(log, pool)
-	demand_cost = EC2.calculate_cost(default_log, EMPTY_INSTANCE_POOL)
+	demand_cost = EC2.calculate_cost(demand_log, EMPTY_INSTANCE_POOL)
 
-	for util in pool:
-		print util, "Instance Pool Used ***************"
-		for machine in pool[util]:
-			print "\t%s: %d" % (machine, pool[util][machine])
+	for utilization_class in pool:
+		print utilization_class, "Instance Pool Used ***************"
+		for machine in pool[utilization_class]:
+			print "\t%s: %d" % (machine, pool[utilization_class][machine])
 		print ""
 
-	for util in log:
-		print util, "Hours Used **************"
-		for machine in log[util]:
-			print "\t%s: %d" % (machine, log[util][machine])
+	for utilization_class in log:
+		print utilization_class, "Hours Used **************"
+		for machine in log[utilization_class]:
+			print "\t%s: %d" % (machine, log[utilization_class][machine])
 
 	print
 	print "ENTIRELY ON DEMAND STATISTICS"
 	print " Hours Used **************"
-	for util in default_log:
-		for machine in default_log[util]:
-			print "\t%s: %d" % (machine, default_log[util][machine])
+	for utilization_class in demand_log:
+		for machine in demand_log[utilization_class]:
+			print "\t%s: %d" % (machine, demand_log[utilization_class][machine])
 
 	print "Cost difference:"
 	print "Cost for Reserved Instance: ", optimized_cost

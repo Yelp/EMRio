@@ -175,6 +175,10 @@ class Simulator:
 		heapify(priority_queue)
 		return priority_queue
 
+	def attach_observer(self, observer):
+		self.observers.append(observer)
+	
+
 	def notify(self, time, event_type, job, logged_hours, pool_used):
 		"""Do nothing, overwrite if you want richer
 		information from the simulator.
