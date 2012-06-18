@@ -35,124 +35,126 @@ from math import ceil
 from simulate_jobs import Simulator
 
 
-def optimize_instance_pool(job_flows, job_flows_interval=None):
-	"""Take all the max_instance counts, then use that to combinatorically
-	find the most cost efficient instance cost
-	job_flows_interval is the interval of time that all the job flows ran.
-		If none, then it will be calculated in the function.
+class Optimizer:
+	def __init__(self, job_flows, job_flows_interval=None):
+		self.job_flows = job_flows
+		self.job_flows_interval = job_flows_interval
+		if job_flows_interval is None:
+			min_time = min(job.get('startdatetime') for job in job_flows)
+			max_time = max(job.get('enddatetime') for job in job_flows)
+			self.job_flows_interval = max_time - min_time
 
-	returns: dict of best pool of instances to be used.
-	"""
+	def run(self):
+		"""Take all the max_instance counts, then use that to combinatorically
+		find the most cost efficient instance cost
+		job_flows_interval is the interval of time that all the job flows ran.
+			If none, then it will be calculated in the function.
 
-	optimized_pool = EC2.init_empty_reserve_pool()
-	if job_flows_interval is None:
-		min_time = min(job.get('startdatetime') for job in job_flows)
-		max_time = max(job.get('enddatetime') for job in job_flows)
-		job_flows_interval = max_time - min_time
+		returns: dict of best pool of instances to be used.
+		"""
 
-	# Zero-ing the instances just makes it so the optimized pool
-	# knows all the instance_types the job flows use beforehand.
-	zero_instance_types(job_flows, optimized_pool)
-	for instance in EC2.instance_types_in_pool(optimized_pool):
-		brute_force_optimize(instance, job_flows, optimized_pool, job_flows_interval)
-	return optimized_pool
+		optimized_pool = EC2.init_empty_reserve_pool()
 
+		# Zero-ing the instances just makes it so the optimized pool
+		# knows all the instance_types the job flows use beforehand.
+		self.zero_instance_types(optimized_pool)
+		for instance in EC2.instance_types_in_pool(optimized_pool):
+			self.brute_force_optimize(instance, optimized_pool)
+		return optimized_pool
 
-def brute_force_optimize(instance_type, job_flows, pool, job_flows_interval):
-	"""The brute force approach will take a single instance type and optimize the
-	instance pool for it. By using the job_flows in simulations.
-	returns: nothing
-	mutates: pool
-	"""
-	simulator = Simulator(job_flows, pool)
-	previous_cost = float('inf')
-	current_min_cost = float("inf")
-	current_cost = float('inf')
-	current_min_instances = EC2.init_reserve_counts()
-	# Calculate the default cost first.
-	logs = simulator.run()
-	convert_to_yearly_hours(logs, job_flows_interval)
-	current_min_cost = EC2.calculate_cost(logs, pool)
-	current_cost = current_min_cost
-	# Since there is only 1 best min value, any time adding
-	# one more instance adds more to the cost, we know that the
-	# previous instance was the best, so stop there.
-	while previous_cost >= current_cost:
-		current_simulation_costs = EC2.init_reserve_counts()
-		for utilization_class in current_simulation_costs:
-			current_simulation_costs[utilization_class] = float('inf')
+	def brute_force_optimize(self, instance_type, pool):
+		"""The brute force approach will take a single instance type and optimize the
+		instance pool for it. By using the job_flows in simulations.
+		returns: nothing
+		mutates: pool
+		"""
+		simulator = Simulator(self.job_flows, pool)
+		previous_cost = float('inf')
+		current_min_cost = float("inf")
+		current_cost = float('inf')
+		current_min_instances = EC2.init_reserve_counts()
+		# Calculate the default cost first.
+		logged_hours = simulator.run()
+		convert_to_yearly_hours(logged_hours, self.job_flows_interval)
+		current_min_cost = EC2.calculate_cost(logged_hours, pool)
+		current_cost = current_min_cost
+		# Since there is only 1 best min value, any time adding
+		# one more instance adds more to the cost, we know that the
+		# previous instance was the best, so stop there.
+		while previous_cost >= current_cost:
+			current_simulation_costs = EC2.init_reserve_counts()
+			for utilization_class in current_simulation_costs:
+				current_simulation_costs[utilization_class] = float('inf')
 
-		# Add a single instance to each utilization type, and record the costs.
-		# whichever is the minimum, and choose it.
-		for utilization_class in pool:
-			# Reset the min instances to the best values.
+			# Add a single instance to each utilization type, and record the costs.
+			# whichever is the minimum, and choose it.
+			for utilization_class in pool:
+				# Reset the min instances to the best values.
+				for current_util in pool:
+					pool[current_util][instance_type] = current_min_instances[current_util]
+				pool[utilization_class][instance_type] = (
+						current_min_instances[utilization_class] + 1
+					)
+				logged_hours = simulator.run()
+				convert_to_yearly_hours(logged_hours, self.job_flows_interval)
+				current_simulation_costs[utilization_class] = EC2.calculate_cost(
+					logged_hours, pool)
+			previous_cost = current_cost
+			current_cost = min(current_simulation_costs.values())
+			min_util_level = None
+			for utilization_class in current_simulation_costs:
+				if current_simulation_costs[utilization_class] == current_cost:
+					min_util_level = utilization_class
+
+			# Record the new cost, then check to see if adding one instance is better
+			# If it is not, then break from the loop, since adding more will be worst.
+			if min(current_cost, current_min_cost) != current_min_cost or (
+			current_cost == current_min_cost):
+
+				current_min_cost = current_cost
+				current_min_instances[min_util_level] += 1
+			# Reset to best instance pool.
 			for current_util in pool:
-				pool[current_util][instance_type] = current_min_instances[current_util]
+				pool[current_util][instance_type] = (
+					current_min_instances[utilization_class])
+
+		for utilization_class in current_min_instances:
 			pool[utilization_class][instance_type] = (
-					current_min_instances[utilization_class] + 1
+					current_min_instances[utilization_class]
 				)
-			logs = simulator.run()
-			convert_to_yearly_hours(logs, job_flows_interval)
-			current_simulation_costs[utilization_class] = EC2.calculate_cost(logs, pool)
-		previous_cost = current_cost
-		print previous_cost, ' ', current_cost
-		current_cost = min(current_simulation_costs.values())
-		min_util_level = None
-		for utilization_class in current_simulation_costs:
-			if current_simulation_costs[utilization_class] == current_cost:
-				min_util_level = utilization_class
 
-		# Record the new cost, then check to see if adding one instance is better
-		# If it is not, then break from the loop, since adding more will be worst.
-		if min(current_cost, current_min_cost) != current_min_cost or (
-		current_cost == current_min_cost):
+	def zero_instance_types(self, pool):
+		"""Use this function to 0 the instance pool
+		with all the keys used in the job flows.
 
-			current_min_cost = current_cost
-			current_min_instances[min_util_level] += 1
-		# Reset to best instance pool.
-		for current_util in pool:
-			pool[current_util][instance_type] = current_min_instances[utilization_class]
+		example: if the job_flows has m1.small, and m1.large
+		and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
+		resultant pool from the function will be:
 
-	for utilization_class in current_min_instances:
-		pool[utilization_class][instance_type] = (
-				current_min_instances[utilization_class]
-			)
-
-
-def zero_instance_types(job_flows, pool):
-	"""Use this function to 0 the instance pool
-	with all the keys used in the job flows.
-
-	example: if the job_flows has m1.small, and m1.large
-	and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
-	resultant pool from the function will be:
-
-	pool = {
-		LIGHT_UTIL: {
-			'm1.small': 0, 'm1.large': 0
+		pool = {
+			LIGHT_UTIL: {
+				'm1.small': 0, 'm1.large': 0
+			}
+			HEAVY_UTIL: {
+				'm1.small': 0, 'm1.large': 0
+			}
 		}
-		HEAVY_UTIL: {
-			'm1.small': 0, 'm1.large': 0
-		}
-	}
-	Args:
-		job_flows: A filtered list of job dictionaries.
+		Args:
+			pool: A dict of utilization level dictionaries with nothing in them.
 
-		pool: A dict of utilization level dictionaries with nothing in them.
-
-	Mutates:
-		pool: for each utilization type, it fills in all the instance_types
-			that any job uses.
-	Returns: Nothing
-	"""
-	for job in job_flows:
-		for instance in job.get('instancegroups'):
-			i_type = instance.get('instancetype')
-			for util in pool.keys():
-				pool[util][i_type] = 0
+		Mutates:
+			pool: for each utilization type, it fills in all the instance_types
+				that any job uses.
+		Returns: Nothing
+		"""
+		for job in self.job_flows:
+			for instance in job.get('instancegroups'):
+				instance_type = instance.get('instancetype')
+				for utilization_class in pool.keys():
+					pool[utilization_class][instance_type] = 0
 
 
-def convert_to_yearly_hours(logs, interval):
+def convert_to_yearly_hours(logged_hours, interval):
 	"""Takes a min and max time and will convert to the amount of hours estimated
 	for a year.
 
@@ -178,6 +180,8 @@ def convert_to_yearly_hours(logs, interval):
 	if interval.days is not 0:
 		conversion_rate = (days_per_year /
 			(interval.days + interval.seconds / (24.0 * 60 * 60)))
-	for util in logs:
-		for machine in logs[util]:
-			logs[util][machine] = ceil(logs[util][machine] * conversion_rate)
+	for utilization_class in logged_hours:
+		for machine in logged_hours[utilization_class]:
+			logged_hours[utilization_class][machine] = ceil(
+					logged_hours[utilization_class][machine] * conversion_rate
+				)

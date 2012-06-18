@@ -18,7 +18,7 @@
 #		INSTANCE_NAME: INSTANCE_COUNT
 #	}
 # }
-# UTILIZATION_LEVEL is an int that corresponds to
+# UTILIZATION_LEVEL is a name that corresponds to
 # utilization_class levels found here:
 # 		http://aws.amazon.com/ec2/reserved-instances/#2
 # INSTANCE_NAMES is the name that amazon uses for their instance types.
@@ -37,27 +37,30 @@
 # 		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
 
 import datetime
-from datetime import timedelta
-from optparse import OptionParser
 import json
 import sys
+from datetime import timedelta
+from optparse import OptionParser
 
 from iso8601 import parse_date
+
+# The user doesn't necessarily need mrjob, so we check to see if
+# they have mrjob, if not, then we use the backup BOTO
 import boto.exception
 try:
 	mrjob = True
 	from mrjob.emr import EMRJobRunner
 except ImportError:
-	mrjob = False
+	mrjob = None
 
 	from boto.emr.connection import EmrConnection
 
 
 from ec2_cost import EC2
 from simulate_jobs import Simulator
-#from graph_jobs import cost_graph, total_hours_graph
+from graph_jobs import cost_graph, total_hours_graph
 from job_filter import JobFilter
-from optimizer import convert_to_yearly_hours, optimize_instance_pool
+from optimizer import convert_to_yearly_hours, Optimizer
 
 
 # This is used for calculating on-demand usage.
@@ -68,33 +71,14 @@ def main(args):
 	option_parser = make_option_parser()
 	options, args = option_parser.parse_args(args)
 
-	job_flows = job_flow_handler(options)
-
-	# Get the min and max times so that the yearly estimate can be made.
-	job_flows_begin_time = min(job.get('startdatetime') for job in job_flows)
-	job_flows_end_time = max(job.get('enddatetime') for job in job_flows)
-	interval_job_flows = job_flows_end_time - job_flows_begin_time
-
-	if options.optimized_file:
-		pool = read_optimal_instances(options.optimized_file)
-	else:
-		pool = optimize_instance_pool(job_flows, interval_job_flows)
-
-	if options.save is not None:
-		write_optimal_instances(options.save, pool)
-	optimal_simulator = Simulator(job_flows, pool)
-	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL)
-	optimal_logged_hours = optimal_simulator.run()
-	demand_logged_hours = demand_simulator.run()
-
-	# Default_log is the log of hours used for purely on demand instances
-	# with no reserved instances purchased for comparison later.
-	convert_to_yearly_hours(demand_logged_hours, interval_job_flows)
-	convert_to_yearly_hours(optimal_logged_hours, interval_job_flows)
-
+	job_flows = get_job_flows(options)
+	pool = get_best_instance_pool(options, job_flows)
+	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
+		pool)
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
-	# Graph stuff if specified.
+	# If you specified a type of graph, display it here. Check options
+	# for more details.
 	if options.graph == 'cost':
 		cost_graph(job_flows, pool)
 	elif options.graph == 'total_usage':
@@ -148,7 +132,7 @@ def make_option_parser():
 	return option_parser
 
 
-def job_flow_handler(options):
+def get_job_flows(options):
 	"""This will check the options and use a file if provided or
 	will get the job_flow data from amazon's cluster if no file
 	is provided
@@ -164,12 +148,33 @@ def job_flow_handler(options):
 	if(options.file_inputs):
 		job_flows = handle_job_flows_file(options.file_inputs)
 	else:
-		job_flows = get_job_flows_from_amazon(options)
+		job_flows = get_job_flow_objects(options)
 	job_flows = job_filter.filter_jobs(job_flows)
 
 	# sort job flows before running simulations.
 	job_flows = sorted(job_flows, cmp=sort_by_job_times)
 	return job_flows
+
+
+def get_best_instance_pool(options, job_flows):
+	"""Returns the best instance flow based on the job_flows passed in or
+	a file passed in by the user.
+
+	Args:
+		options: An OptionParser created from the arguments from the command line.
+
+		job_flows: A list of dicts of jobs that have run over a period of time.
+
+	Returns:
+	"""
+	if options.optimized_file:
+		pool = read_optimal_instances(options.optimized_file)
+	else:
+		pool = Optimizer(job_flows).run()
+
+	if options.save:
+		write_optimal_instances(options.save, pool)
+	return pool
 
 
 def write_optimal_instances(filename, pool):
@@ -203,6 +208,34 @@ def read_optimal_instances(filename):
 		utilization_class = utilization_class
 		pool[utilization_class][machine] = int(count)
 	return pool
+
+
+def simulate_job_flows(job_flows, pool):
+	""" Gets the hours used in a simulation with the job flows and pool and
+	the demand hours used as well.
+
+	Returns:
+		optimal_logged_hours: The amount of hours that each reserved instance
+			used from the given job flow.
+
+		demand_logged_hours: The amount of hours used per instance on just purely
+			on demand instances, no reserved instances. Use this as a control group.
+	"""
+	job_flows_begin_time = min(job.get('startdatetime') for job in job_flows)
+	job_flows_end_time = max(job.get('enddatetime') for job in job_flows)
+	interval_job_flows = job_flows_end_time - job_flows_begin_time
+
+	# Get the min and max times so that the yearly estimate can be made.
+	optimal_simulator = Simulator(job_flows, pool)
+	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL)
+	optimal_logged_hours = optimal_simulator.run()
+	demand_logged_hours = demand_simulator.run()
+
+	# Default_log is the log of hours used for purely on demand instances
+	# with no reserved instances purchased for comparison later.
+	convert_to_yearly_hours(demand_logged_hours, interval_job_flows)
+	convert_to_yearly_hours(optimal_logged_hours, interval_job_flows)
+	return optimal_logged_hours, demand_logged_hours
 
 
 def handle_job_flows_file(filename):
@@ -280,7 +313,7 @@ def output_statistics(log, pool, demand_log,):
 
 
 #### Stuff taken from mrjob.tools.emr.audit_usage #####
-def get_job_flows(conf_path, max_days_ago=None, now=None):
+def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	"""Get relevant job flow information from EMR.
 
 	:param str conf_path: Alternate path to read :py:mod:`mrjob.conf` from, or
