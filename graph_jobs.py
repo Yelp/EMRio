@@ -9,7 +9,7 @@ from pytz import timezone
 
 
 from ec2_cost import EC2
-from simulate_jobs import Simulator
+from simulate_jobs import Simulator, SimulationObserver
 
 TIME = timezone('US/Alaska')
 COLORS = EC2.color_scheme()
@@ -38,42 +38,8 @@ def record_used_instances(job_flows, pool):
 	used_per_hour = EC2.init_empty_all_instance_types()
 	hour_graph = {}
 	instance_simulator = Simulator(job_flows, pool)
-
-	def instance_usage_logger(time, node_type, job, _, used):
-		"""Logs all instance hour useage for each time node in the
-		priority queue. This will just append the pool usage at that point
-		in the simulator.
-
-
-		Example: Let's say we have only 2 events at time 1 and time 3.
-		This will record the used_pool at time 1 before any action is
-		taken. Let's say in the event at time 1, it was a START event,
-		so after time 1, there will be X instances used to accomodate for
-		the new job, which will be recorded. At time 3, it is the end event
-		for the job, so after time 3, the used pool will be back at 0.
-		On a basic level, the lists will look something like this:
-		used[utilization][instance_type]: [0  5  5  0]
-		time[instance_type]:              [1  1  3  3]
-
-		"""
-
-		for instance in job.get('instancegroups'):
-			instance_type = instance.get('instancetype')
-			# Add the time this event occurred at.
-			current_time_line = hour_graph.get(instance_type, [])
-			current_time_line.append(time)
-			hour_graph[instance_type] = current_time_line
-
-			# Calculate the total at each point, then increasingly
-			# Add the next util group onto the previous one.
-			total = 0
-			for utilization_class in EC2.ALL_PRIORITIES:
-				if instance_type not in used_per_hour[utilization_class]:
-					used_per_hour[utilization_class][instance_type] = []
-				total += used[utilization_class].get(instance_type, 0)
-				used_per_hour[utilization_class][instance_type].append(total)
-
-	instance_simulator.attach_observer(instance_usage_logger)
+	observer = SimulationObserver(hour_graph, used_per_hour)
+	instance_simulator.attach_pool_use_observer(observer)
 	instance_simulator.run()
 	return used_per_hour, hour_graph
 
@@ -85,30 +51,8 @@ def record_log_data(job_flows, pool):
 	log_per_hour = EC2.init_empty_all_instance_types()
 	hour_graph = {}
 	log_simulator = Simulator(job_flows, pool)
-
-	def instance_hour_logger(time, node_type, job, log, _):
-		"""Logs all instance hour useage for each time node in the
-		priority queue. The logger is called twice in a single event.
-		So this records the state of log pool before and after some event"""
-
-		for instance in job.get('instancegroups'):
-			instance_type = instance.get('instancetype')
-
-			# Add the time this event occurred at.
-			current_time_line = hour_graph.get(instance_type, [])
-			current_time_line.append(time)
-			hour_graph[instance_type] = current_time_line
-
-			# Grab the total usage logs for each util type.
-			# It is a cumulative total to make a stacked graph which looks cooler.
-			total = 0
-			for utilization_class in EC2.ALL_PRIORITIES:
-				if instance_type not in log_per_hour[utilization_class]:
-					log_per_hour[utilization_class][instance_type] = []
-				total += log[utilization_class].get(instance_type, 0)
-				log_per_hour[utilization_class][instance_type].append(total)
-
-	log_simulator.attach_observer(instance_hour_logger)
+	observer = SimulationObserver(hour_graph, log_per_hour)
+	log_simulator.attach_log_hours_observer(observer)
 	log_simulator.run()
 
 	return  log_per_hour, hour_graph
@@ -157,3 +101,5 @@ def graph_over_time(logged_info, hours_line, job_flows,
 		ax.legend()
 		plt.xticks(rotation='vertical')
 	plt.show()
+
+

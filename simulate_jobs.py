@@ -76,7 +76,8 @@ class Simulator:
 	def __init__(self, job_flows, pool):
 		self.pool = pool
 		self.job_flows = job_flows
-		self.observers = []
+		self.log_observers = []
+		self.use_pool_observers = []
 
 	def run(self):
 		"""Will simulate a job flow using a reserved instance pool.
@@ -115,7 +116,8 @@ class Simulator:
 		for time, event_type, job in [heappop(priority_queue)
 								for i in range(len(priority_queue))]:
 			job_id = job.get('jobflowid')
-
+			print event_type,' ', job_id
+			print jobs_running
 			# Logger is used for recording more information as the simulator runs
 			# by passing in a logger function, you can use closure to access other
 			# variables and log the information you want (example: graphs)
@@ -175,9 +177,11 @@ class Simulator:
 		heapify(priority_queue)
 		return priority_queue
 
-	def attach_observer(self, observer):
-		self.observers.append(observer)
+	def attach_log_hours_observer(self, observer):
+		self.log_observers.append(observer)
 	
+	def attach_pool_use_observer(self, observer):
+		self.use_pool_observers.append(observer)
 
 	def notify(self, time, event_type, job, logged_hours, pool_used):
 		"""Do nothing, overwrite if you want richer
@@ -195,8 +199,11 @@ class Simulator:
 
 		Returns: Nothing.
 		"""
-		for observer in self.observers:
-			observer(time, event_type, job, logged_hours, pool_used)
+		for observer in self.use_pool_observers:
+			observer.update(time, event_type, job, pool_used)
+
+		for observer in self.log_observers:
+			observer.update(time, event_type, job, pool_used)
 
 	def log_hours(self, logged_hours, jobs, job_id):
 		"""Will add the hours of the specified job running to the logs.
@@ -330,3 +337,32 @@ class Simulator:
 			return self.pool[utilization_class].get(instance_type, 0) - amt_used
 		else:
 			return float('inf')
+
+class SimulationObserver(object):
+	def __init__(self, hour_graph, recorder):
+		self.hour_graph = hour_graph
+		self.recorder = recorder
+	
+	def update(self, time, node_type, job, data):
+		"""Logs all instance hour useage for each time node in the
+		priority queue. The logger is called twice in a single event.
+		So this records the state of log pool before and after some event"""
+
+		for instance in job.get('instancegroups'):
+			instance_type = instance.get('instancetype')
+
+			# Add the time this event occurred at.
+			current_time_line = self.hour_graph.get(instance_type, [])
+			current_time_line.append(time)
+			self.hour_graph[instance_type] = current_time_line
+
+			# Grab the total usage logs for each util type.
+			# It is a cumulative total to make a stacked graph which looks cooler.
+			total = 0
+			for utilization_class in EC2.ALL_PRIORITIES:
+				if instance_type not in self.recorder[utilization_class]:
+					self.recorder[utilization_class][instance_type] = []
+				total += data[utilization_class].get(instance_type, 0)
+				self.recorder[utilization_class][instance_type].append(total)
+
+
