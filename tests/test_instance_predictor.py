@@ -4,13 +4,10 @@ import datetime
 from unittest import TestCase
 
 # Setup a mock EC2 since west coast can be changed in the future.
-import sys
-import os
-
-from EMRio.simulate_jobs import Simulator
-from EMRio.ec2_cost import EC2Info
-from EMRio.ec2.test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
-from EMRio.ec2.test_prices import DEMAND
+from emrio.simulate_jobs import Simulator
+from emrio.ec2_cost import EC2Info
+from emrio.ec2.test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
+from emrio.ec2.test_prices import DEMAND
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 BASETIME = datetime.datetime(2012, 5, 20, 5)
@@ -37,7 +34,6 @@ JOBS_RUNNING = {
 	}
 
 }
-
 
 def create_test_job(instance_name, count, j_id, start_time=CURRENT_TIME,
 	end_time=(CURRENT_TIME + INCREMENT)):

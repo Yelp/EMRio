@@ -4,9 +4,9 @@ import datetime
 import copy
 from math import ceil
 
-from EMRio.optimizer import Optimizer, convert_to_yearly_hours
-from EMRio import ec2_cost
-from EMRio.ec2.test_prices import *
+from emrio.optimizer import Optimizer, convert_to_yearly_estimated_hours
+from emrio import ec2_cost
+from emrio.ec2.test_prices import *
 
 EC2 = ec2_cost.EC2Info(COST, RESERVE_PRIORITIES)
 BASETIME = datetime.datetime(2012, 5, 20, 5)
@@ -155,7 +155,7 @@ class TestOptimizeFunctions(TestCase):
 		logs_after[MEDIUM_UTIL][INSTANCE_NAME] = ceil(
 			logs_after[MEDIUM_UTIL][INSTANCE_NAME] * (365.0 / 60.0))
 		interval = datetime.timedelta(60, 0)
-		convert_to_yearly_hours(logs, interval)
+		convert_to_yearly_estimated_hours(logs, interval)
 		self.assertEqual(logs, logs_after)
 
 	def test_interval_converter_two_years(self):
@@ -166,7 +166,7 @@ class TestOptimizeFunctions(TestCase):
 		logs_after[MEDIUM_UTIL][INSTANCE_NAME] = ceil(
 			logs_after[MEDIUM_UTIL][INSTANCE_NAME] * (1.0 / 2.0))
 		interval = datetime.timedelta(365.0 * 2, 0)
-		convert_to_yearly_hours(logs, interval)
+		convert_to_yearly_estimated_hours(logs, interval)
 		self.assertEqual(logs, logs_after)
 
 if __name__ == '__main__':

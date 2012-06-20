@@ -4,9 +4,9 @@ from unittest import TestCase
 
 import pytz
 # Setup a mock EC2 since west coast can be changed in the future.
-from EMRio.job_filter import no_date_filter, range_date_filter
-from EMRio.ec2_cost import EC2Info
-from EMRio.ec2.test_prices import COST, RESERVE_PRIORITIES
+from emrio.job_filter import no_date_filter, range_date_filter
+from emrio.ec2_cost import EC2Info
+from emrio.ec2.test_prices import COST, RESERVE_PRIORITIES
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 BASETIME = datetime.datetime(2012, 5, 20)
