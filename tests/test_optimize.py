@@ -6,7 +6,7 @@ from math import ceil
 
 from emrio.optimizer import Optimizer, convert_to_yearly_estimated_hours
 from emrio import ec2_cost
-from emrio.ec2.test_prices import *
+from test_prices import *
 
 EC2 = ec2_cost.EC2Info(COST, RESERVE_PRIORITIES)
 BASETIME = datetime.datetime(2012, 5, 20, 5)

@@ -6,8 +6,8 @@ from unittest import TestCase
 # Setup a mock EC2 since west coast can be changed in the future.
 from emrio.simulate_jobs import Simulator
 from emrio.ec2_cost import EC2Info
-from emrio.ec2.test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
-from emrio.ec2.test_prices import DEMAND
+from test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
+from test_prices import DEMAND
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 BASETIME = datetime.datetime(2012, 5, 20, 5)
