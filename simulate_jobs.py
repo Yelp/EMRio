@@ -116,8 +116,6 @@ class Simulator:
 		for time, event_type, job in [heappop(priority_queue)
 								for i in range(len(priority_queue))]:
 			job_id = job.get('jobflowid')
-			print event_type,' ', job_id
-			print jobs_running
 			# Logger is used for recording more information as the simulator runs
 			# by passing in a logger function, you can use closure to access other
 			# variables and log the information you want (example: graphs)

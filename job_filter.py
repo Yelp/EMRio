@@ -152,7 +152,7 @@ def get_job_flows_from_amazon(options):
 	return job_flows
 
 
-#### Stuff taken from mrjob.tools.emr.audit_usage #####
+#### Code ported from mrjob.tools.emr.audit_usage #####
 def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	"""Get relevant job flow information from EMR.
 

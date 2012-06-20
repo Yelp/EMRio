@@ -1,4 +1,6 @@
 # West Coast(North California) 1 Year Prices as of 6/14/2012
+# data taken from: 
+# http://aws.amazon.com/ec2/pricing
 #
 # This is the price list and utility types for west coast california prices.
 # Anything listed as infinity price means that it is not offered on the
@@ -14,7 +16,7 @@
 HEAVY_UTIL = "Heavy Utility"
 MEDIUM_UTIL = "Medium Utility"
 LIGHT_UTIL = "Light Utility"
-DEMAND = "Demand"
+DEMAND = "On Demand"
 RESERVE_PRIORITIES = [HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL]
 COST = {
 	LIGHT_UTIL: {

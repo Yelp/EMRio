@@ -55,7 +55,7 @@ def main(args):
 	options, args = option_parser.parse_args(args)
 
 	job_flows = get_job_flows(options)
-	pool = get_best_instance_pool(options, job_flows)
+	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save)
 	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
 		pool)
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
@@ -115,24 +115,28 @@ def make_option_parser():
 	return option_parser
 
 
-def get_best_instance_pool(options, job_flows):
+def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 	"""Returns the best instance flow based on the job_flows passed in or
 	a file passed in by the user.
 
 	Args:
-		options: An OptionParser created from the arguments from the command line.
+		optimized_filename: the name of a file with the optimal instances in it.
+			if this is None, then get the data from Amazon.
 
+		save_filename: the name of a file to save the calculated results to. 
+			If none, don't save the file.
 		job_flows: A list of dicts of jobs that have run over a period of time.
 
 	Returns:
+		pool of best optimal instances.
 	"""
-	if options.optimized_file:
-		pool = read_optimal_instances(options.optimized_file)
+	if optimized_filename:
+		pool = read_optimal_instances(optimized_filename)
 	else:
 		pool = Optimizer(job_flows).run()
 
-	if options.save:
-		write_optimal_instances(options.save, pool)
+	if save_filename:
+		write_optimal_instances(save_filename, pool)
 	return pool
 
 
@@ -144,8 +148,6 @@ def write_optimal_instances(filename, pool):
 		filename: name of file.
 
 		pool: A dict of optimal reserved instances to buy.
-
-	Returns: Nothing
 	"""
 	f = open(filename, 'w')
 	for utilization_class in pool:
@@ -158,6 +160,9 @@ def write_optimal_instances(filename, pool):
 def read_optimal_instances(filename):
 	"""Reads in a file of optimized instances instead of doing the simulation
 	optimization which is slow.
+
+	Returns:
+		pool: The optimal utilization class and instances read from the file specified.
 	"""
 
 	pool = EC2.init_empty_reserve_pool()

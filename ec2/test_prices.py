@@ -1,7 +1,7 @@
 HEAVY_UTIL = "Heavy Utility"
 MEDIUM_UTIL = "Medium Utility"
 LIGHT_UTIL = "Light Utility"
-DEMAND = "Demand"
+DEMAND = "On Demand"
 RESERVE_PRIORITIES = [HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL]
 COST = {
 	LIGHT_UTIL: {

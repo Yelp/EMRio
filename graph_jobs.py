@@ -59,7 +59,8 @@ def record_log_data(job_flows, pool):
 
 
 def graph_over_time(logged_info, hours_line, job_flows,
-	xlabel='Time job ran (in hours)', ylabel='Instances run'):
+	xlabel='Time job ran (in hours)',
+	ylabel='Instances run'):
 	"""Given some sort of data that changes over time, graph the
 	data usage using this"""
 	begin_time = min(job.get('startdatetime') for job in job_flows)
@@ -67,28 +68,28 @@ def graph_over_time(logged_info, hours_line, job_flows,
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
 
-	for i_type in EC2.instance_types_in_pool(logged_info):
+	for instance_type in EC2.instance_types_in_pool(logged_info):
 		# Locators / Formatters to pretty up the graph.
 		hours = mdates.HourLocator(byhour=None, interval=1, tz=TIME)
 		days = mdates.DayLocator(bymonthday=None, interval=1, tz=TIME)
 		formatter = mdates.DateFormatter("%m/%d ", TIME)
 
 		fig = plt.figure()
-		fig.suptitle(i_type)
+		fig.suptitle(instance_type)
 		ax = fig.add_subplot(111)
-		date_list = mdates.date2num(hours_line[i_type])
+		date_list = mdates.date2num(hours_line[instance_type])
 
 		# Need to plot DEMAND -> HEAVY_UTIL since they are stacked which means
 		# DEMAND will be the largest and needs to be drawn first so others draw over.
 		iterator = copy.deepcopy(EC2.ALL_PRIORITIES)
 		iterator.reverse()
 
-		for util in iterator:
-			ax.plot(date_list, logged_info[util][i_type], color='#000000')
-			ax.plot(date_list[0], logged_info[util][i_type][0],
-				color=COLORS[util], label=util)
-			ax.fill_between(date_list, logged_info[util][i_type],
-				color=COLORS[util], alpha=1.0,)
+		for utilization_class in iterator:
+			ax.plot(date_list, logged_info[utilization_class][instance_type], color='#000000')
+			ax.plot(date_list[0], logged_info[utilization_class][instance_type][0],
+				color=COLORS[utilization_class], label=utilization_class)
+			ax.fill_between(date_list, logged_info[utilization_class][instance_type],
+				color=COLORS[utilization_class], alpha=1.0,)
 
 		ax.xaxis.set_major_locator(days)
 		ax.xaxis.set_major_formatter(formatter)
@@ -101,5 +102,4 @@ def graph_over_time(logged_info, hours_line, job_flows,
 		ax.legend()
 		plt.xticks(rotation='vertical')
 	plt.show()
-
 

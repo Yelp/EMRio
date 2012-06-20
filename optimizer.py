@@ -35,7 +35,7 @@ from math import ceil
 from simulate_jobs import Simulator
 
 
-class Optimizer:
+class Optimizer(object):
 	def __init__(self, job_flows, job_flows_interval=None):
 		self.job_flows = job_flows
 		self.job_flows_interval = job_flows_interval
