@@ -1,34 +1,29 @@
-"""This is the default EC2 cost calculator. EC2 has reserved instances and
-on-demand instances. The reserved instances have an upfront cost but less
-hourly rates. Each type with different utilization_classization is expressed in the COST
-dict supplied in ec2.west_coast_prices.
+"""This module is used for creating instance pools and calculating the
+cost of running EC2 machines.
+
 WARNING: If you are using this for calculations, the rates are pulled from
 Amazon's website here: http://aws.amazon.com/ec2/reserved-instances/
 The prices are calibrated for US West (Northern California).
 if you want to change that, you need to create your own file in
 ec2 folder and import it here.
 
-The format for an ec2 config is as follows:
-RESERVE_PRIORITIES - a list of all the reserve utilization_classization types.
-	the list needs to be in order, so the highest priority reserve type
-	will be first in the list.
+If you need a reference, take a look at ec2/test_price.py
 
-COST = {
-	utilization_classIZATION_NAME: {
-		INSTANCE_NAME: {
-			'hourly': HOURLY_COST,
-			'upfront': UPFRONT_COST,
-		}
+This class also creates instance pools and logs for storing the hours
+machines run. Their structure is like this:
+pool = {
+	UTILIZATION_LEVEL: {
+		INSTANCE_NAME: INSTANCE_COUNT
 	}
 }
-utilization_classIZATION_NAME is for reserved and on-demand. You need to classify
-	on demand as a type as well and just 0 out the upfront costs.
-INSTANCE_NAME is the type of instance defined on Amazon EC2 pricing.
-	(e.g. m1.small)
-HOURLY_COST is the cost per hour of running the instance.
-UPFRONT_COST is the cost to buy this machine for a year (0 for demand)
+UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
+		http://aws.amazon.com/ec2/reserved-instances/#2
+INSTANCE_NAMES is the name that amazon uses for their instance types.
+INSTANCE_COUNT is how many instances are 'bought' for that simulation.
 
-If you need a reference, take a look at ec2/test_price.py
+logs to store hours run use the same format except INSTANCE_COUNT is hours run.
+
+
 """
 
 import copy
@@ -41,7 +36,7 @@ class EC2Info(object):
 	pools or calculate the costs of instances.
 	"""
 
-	def __init__(cls, cost, reserve_priorities):
+	def __init__(self, cost, reserve_priorities):
 		"""Initializes an EC2 instance and ALL_PRIORITIES is
 		all the utilization_class types including DEMAND.
 
@@ -52,16 +47,18 @@ class EC2Info(object):
 			or priorities.
 		"""
 
-		cls.COST = cost
-		cls.RESERVE_PRIORITIES = reserve_priorities
+		self.COST = cost
+		self.RESERVE_PRIORITIES = reserve_priorities
+
+		# Copy reserve_priorities since we want to preserve priority order.
 		all_priorities = copy.deepcopy(reserve_priorities)
 
-		for utilization_class in cost:
+		for utilization_class in cost.keys():
 			if utilization_class not in all_priorities:
 				all_priorities.append(utilization_class)
-		cls.ALL_PRIORITIES = all_priorities
+		self.ALL_PRIORITIES = all_priorities
 
-	def calculate_cost(cls, logged_hours, pool):
+	def calculate_cost(self, logged_hours, pool):
 		"""Calculates the total cost of the pool, and the amount of
 		hours ran (logged_hours).
 
@@ -72,7 +69,6 @@ class EC2Info(object):
 			pool: The amount of reserved instances bought for the logged_hours.
 
 		Returns:
-	Returns: Nothing
 			cost: Cost of the pool and hourly costs for each of the logged_hours.
 		"""
 		# Calculate the upfront cost of all the instances.
@@ -80,19 +76,19 @@ class EC2Info(object):
 		for utilization_class in pool:
 			for instance_type in pool[utilization_class]:
 				cost += (
-					cls.COST[utilization_class][instance_type]['upfront'] *
+					self.COST[utilization_class][instance_type]['upfront'] *
 					pool[utilization_class][instance_type]
 				)
 		# Hourly cost calculation
 		for utilization_class in logged_hours:
 			for instance_type in logged_hours[utilization_class]:
 				cost += (
-					cls.COST[utilization_class][instance_type]['hourly'] *
+					self.COST[utilization_class][instance_type]['hourly'] *
 					logged_hours[utilization_class][instance_type]
 				)
 		return cost
 
-	def init_empty_reserve_pool(cls):
+	def init_empty_reserve_pool(self):
 		"""Creates an empty reserve pool.
 
 		This takes all the reserve keys and creates an empty dictionary for
@@ -103,11 +99,11 @@ class EC2Info(object):
 				pool= {utilization_classIZATION_NAME: {} }
 		"""
 		empty_pool = {}
-		for utilization_class in cls.RESERVE_PRIORITIES:
+		for utilization_class in self.RESERVE_PRIORITIES:
 			empty_pool[utilization_class] = {}
 		return empty_pool
 
-	def init_empty_all_instance_types(cls):
+	def init_empty_all_instance_types(self):
 		"""This will create a dict of all instance types.
 
 		Every utilization_class type will be initialized here, while reserve pool only does
@@ -117,11 +113,11 @@ class EC2Info(object):
 			Same as init_empty_reserve_pool except for all utilization_classization types.
 		"""
 		empty_logged_hours = {}
-		for utilization_class in cls.ALL_PRIORITIES:
+		for utilization_class in self.ALL_PRIORITIES:
 			empty_logged_hours[utilization_class] = {}
 		return empty_logged_hours
 
-	def init_reserve_counts(cls):
+	def init_reserve_counts(self):
 		"""Has counts of reserves instead of a deeper instance_type dict.
 
 		The main use of this is to count the total instances bought. For
@@ -133,11 +129,12 @@ class EC2Info(object):
 			reserve_counts = { utilization_classIZATION_NAME: 0}
 		"""
 		reserve_counts = {}
-		for utilization_class in cls.RESERVE_PRIORITIES:
+		for utilization_class in self.RESERVE_PRIORITIES:
 			reserve_counts[utilization_class] = 0
 		return reserve_counts
 
-	def instance_types_in_pool(cls, pool):
+	@staticmethod
+	def instance_types_in_pool(pool):
 		"""Gets the set of all instance types in
 		a pool or log
 
@@ -153,13 +150,13 @@ class EC2Info(object):
 				instance_types.add(instance_type)
 		return instance_types
 
-	def is_reserve_type(cls, instance_type):
+	def is_reserve_type(self, instance_type):
 		"""This just returns if a utilization_classization type is
 		a reserve instance. If not, it is probably DEMAND type.
 		"""
-		return instance_type in cls.RESERVE_PRIORITIES
+		return instance_type in self.RESERVE_PRIORITIES
 
-	def color_scheme(cls):
+	def color_scheme(self):
 		"""This creates a color scheme starting at red (bad) to
 		green, with a slight hint of blue. This is used for graphing
 		and having each utilization_classization type be a different color.
@@ -172,8 +169,8 @@ class EC2Info(object):
 		red = 255
 		green = 0
 		blue = 240
-		increment = 255 / (len(cls.ALL_PRIORITIES) - 1)
-		iterator = copy.deepcopy(cls.ALL_PRIORITIES)
+		increment = 255 / (len(self.ALL_PRIORITIES) - 1)
+		iterator = copy.deepcopy(self.ALL_PRIORITIES)
 		iterator.reverse()  # This puts the worst up first.
 		for utilization_class in iterator:
 			red_hex = hex(red)[2:]
@@ -192,34 +189,34 @@ class EC2Info(object):
 			green = int(green + increment)
 		return colors
 
-def zero_instance_types(job_flows, pool):
-	"""Use this function to 0 the instance pool
-	with all the keys used in the job flows.
+	@staticmethod
+	def zero_instance_types(job_flows, pool):
+		"""Use this function to 0 the instance pool
+		with all the keys used in the job flows.
 
-	example: if the job_flows has m1.small, and m1.large
-	and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
-	resultant pool from the function will be:
+		example: if the job_flows has m1.small, and m1.large
+		and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
+		resultant pool from the function will be:
 
-	pool = {
-		LIGHT_UTIL: {
-			'm1.small': 0, 'm1.large': 0
+		pool = {
+			LIGHT_UTIL: {
+				'm1.small': 0, 'm1.large': 0
+			}
+			HEAVY_UTIL: {
+				'm1.small': 0, 'm1.large': 0
+			}
 		}
-		HEAVY_UTIL: {
-			'm1.small': 0, 'm1.large': 0
-		}
-	}
-	Args:
-		pool: A dict of utilization level dictionaries with nothing in them.
+		Args:
+			pool: A dict of utilization level dictionaries with nothing in them.
 
-	Mutates:
-		pool: for each utilization type, it fills in all the instance_types
-			that any job uses.
-	Returns: Nothing
-	"""
-	for job in job_flows:
-		for instance in job.get('instancegroups'):
-			instance_type = instance.get('instancetype')
-			for utilization_class in pool.keys():
-				pool[utilization_class][instance_type] = 0
+		Mutates:
+			pool: for each utilization type, it fills in all the instance_types
+				that any job uses.
+		"""
+		for job in job_flows:
+			for instance in job.get('instancegroups'):
+				instance_type = instance.get('instancetype')
+				for utilization_class in pool.keys():
+					pool[utilization_class][instance_type] = 0
 
-
+EC2 = EC2Info(COST, RESERVE_PRIORITIES)

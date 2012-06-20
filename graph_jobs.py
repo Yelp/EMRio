@@ -1,4 +1,7 @@
-""" This tool uses a logger to pull information from a simulation of jobs.
+""" Graphing tools for EMRio that use matplotlib
+
+
+This tool uses an observer to pull information from a simulation of jobs.
 Once it has that information, it will use that and matplotlib to make
 a graph on the type of graph you specified in the options of instance_tool.
 """
@@ -23,8 +26,8 @@ def total_hours_graph(job_flows, pool):
 
 
 def cost_graph(job_flows, pool):
-	"""Need a better name, but this will graph the instances
-	used and the type of instance used over time.
+	"""This will graph the instances used and the type of
+	instance used over time.
 	"""
 	used, hours = record_used_instances(job_flows, pool)
 	graph_over_time(used, hours, job_flows)

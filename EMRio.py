@@ -1,50 +1,23 @@
-# Inspect job flows and print out possibly useful information if the job flows
-# can save money by switching to reserved instances and how many instances to
-# buy and how much savings that would give.
-#
-#Usage:
-#
-#	python instance_tool.py > Statistics.txt
-#	(for more options just use --help)
-#
-# Some useful definitions of variables used a lot are given below:
-#
-# 'pool'- This is a storage variable that holds the amount of instances
-#		currently bought. Since there are multiple levels of
-# utilization_class levels
-#		and multiple instance types, the layout of pool is like this:
-# pool = {
-#	UTILIZATION_LEVEL: {
-#		INSTANCE_NAME: INSTANCE_COUNT
-#	}
-# }
-# UTILIZATION_LEVEL is a name that corresponds to
-# utilization_class levels found here:
-# 		http://aws.amazon.com/ec2/reserved-instances/#2
-# INSTANCE_NAMES is the name that amazon uses for their instance types.
-# INSTANCE_COUNT is how many instances are 'bought' for that simulation.
-#
-#
-# logs- is the amount of hours that an instance type at a util level has run
-#		in the span of the job flows. It is structured the same as pool except
-#		INSTANCE_COUNT is hours.
-#
-#
-# job_flows- This is a list of sorted and translated-job-dict-objects. Jobs are
-#		based on the boto JobFlow object, except in dict form. Currently, we
-#		only use start and end times, jobflowids, and instancegroups and
-#		instancegroup objects. More info can be found here:
-# 		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
+"""Inspect job flows and print out reserved instances you should buy.
 
+This module will take job flows from wherever you specify, and use them to
+approximate the amount of reserved instances you should buy and how much money
+you will save by doing so. 
+
+If you are looking for instructions to run the program, look at the
+documentation here:
+	~LINK TO DOCUMENTATION~
+"""
 import sys
 from optparse import OptionParser
 
 from ec2_cost import EC2
 from simulate_jobs import Simulator
-from graph_jobs import cost_graph, total_hours_graph
+from graph_jobs import cost_graph
+from graph_jobs import total_hours_graph
 from job_filter import get_job_flows
-from optimizer import convert_to_yearly_hours, Optimizer
-
+from optimizer import convert_to_yearly_estimated_hours
+from optimizer import Optimizer
 
 # This is used for calculating on-demand usage.
 EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
@@ -55,13 +28,13 @@ def main(args):
 	options, args = option_parser.parse_args(args)
 
 	job_flows = get_job_flows(options)
+
 	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save)
 	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
 		pool)
+
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
-	# If you specified a type of graph, display it here. Check options
-	# for more details.
 	if options.graph == 'cost':
 		cost_graph(job_flows, pool)
 	elif options.graph == 'total_usage':
@@ -125,7 +98,8 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 
 		save_filename: the name of a file to save the calculated results to. 
 			If none, don't save the file.
-		job_flows: A list of dicts of jobs that have run over a period of time.
+
+		job_flows: A list of jobs flow dictionary objects.
 
 	Returns:
 		pool of best optimal instances.
@@ -145,16 +119,15 @@ def write_optimal_instances(filename, pool):
 	job flow.
 
 	Args:
-		filename: name of file.
+		filename: name of the file to save the pool to.
 
-		pool: A dict of optimal reserved instances to buy.
+		pool: A dict of reserved instances to buy.
 	"""
-	f = open(filename, 'w')
-	for utilization_class in pool:
-		for machine in pool[utilization_class].keys():
-			f.write("%s,%s,%d\n" %
-					(utilization_class, machine, pool[utilization_class][machine]))
-	f.close()
+	with open(filename, 'w') as f:
+		for utilization_class in pool:
+			for machine in pool[utilization_class].keys():
+				f.write("%s,%s,%d\n" %
+				(utilization_class, machine, pool[utilization_class][machine]))
 
 
 def read_optimal_instances(filename):
@@ -162,16 +135,16 @@ def read_optimal_instances(filename):
 	optimization which is slow.
 
 	Returns:
-		pool: The optimal utilization class and instances read from the file specified.
+		pool: The utilization class and instances read from the file specified.
 	"""
 
 	pool = EC2.init_empty_reserve_pool()
-	f = open(filename, 'r')
-	for line in f:
-		utilization_class, machine, count = line.split(',')
-		utilization_class = utilization_class
-		pool[utilization_class][machine] = int(count)
-	return pool
+	with open(filename, 'r') as f:
+		for line in f:
+			utilization_class, machine, count = line.split(',')
+			utilization_class = utilization_class
+			pool[utilization_class][machine] = int(count)
+		return pool
 
 
 def simulate_job_flows(job_flows, pool):
@@ -189,16 +162,13 @@ def simulate_job_flows(job_flows, pool):
 	job_flows_end_time = max(job.get('enddatetime') for job in job_flows)
 	interval_job_flows = job_flows_end_time - job_flows_begin_time
 
-	# Get the min and max times so that the yearly estimate can be made.
 	optimal_simulator = Simulator(job_flows, pool)
 	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL)
 	optimal_logged_hours = optimal_simulator.run()
 	demand_logged_hours = demand_simulator.run()
 
-	# Default_log is the log of hours used for purely on demand instances
-	# with no reserved instances purchased for comparison later.
-	convert_to_yearly_hours(demand_logged_hours, interval_job_flows)
-	convert_to_yearly_hours(optimal_logged_hours, interval_job_flows)
+	convert_to_yearly_estimated_hours(demand_logged_hours, interval_job_flows)
+	convert_to_yearly_estimated_hours(optimal_logged_hours, interval_job_flows)
 	return optimal_logged_hours, demand_logged_hours
 
 

@@ -1,3 +1,9 @@
+"""The job handler does the following:
+-translates the datetimes from unicode to datetime objects.
+-will filter out max and min dates if specified in options
+-will remove demunitive jobs that have no start or end dates.
+d
+"""
 import datetime
 import json
 import pytz
@@ -13,14 +19,6 @@ except ImportError:
 	from boto.emr.connection import EmrConnection
 
 
-# The Job Filter does the following:
-# -translates the datetimes from unicode to datetime objects.
-# -will filter out max and min dates if specified in options
-# -will remove demunitive jobs that have no start or end dates.
-#
-# It can be added onto easily by just adding more functions and then
-# adding those functions to self.filters list which will apply the function
-# to all jobs.
 def get_job_flows(options):
 	"""This will check the options and use a file if provided or
 	will get the job_flow data from amazon's cluster if no file
@@ -53,6 +51,7 @@ def get_job_flows(options):
 	for job in job_flows:
 		print job.get('jobflowid')
 	return job_flows
+
 
 def convert_dates(job_flows):
 	"""Converts the dates of all the jobs to the datetime object
@@ -88,6 +87,7 @@ def no_date_filter(job_flows):
 	
 	return new_job_flows
 
+
 def range_date_filter(job_flows, min_days, max_days):
 	"""If there is a min or max day, check to see if the job is within the bounds
 	of the range, and remove any that are not.
@@ -111,10 +111,13 @@ def range_date_filter(job_flows, min_days, max_days):
 		if add_job:
 			new_job_flows.append(job)
 	return new_job_flows
+
+
 def parse_date(str_date):
 	current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
 	current_date = current_date.replace(tzinfo=pytz.utc)
 	return current_date
+
 
 def handle_job_flows_file(filename):
 	"""If you specify a file of job_flow objects, this function loads them. Will
