@@ -1,18 +1,7 @@
 # West Coast(North California) 1 Year Prices as of 6/14/2012
 # data taken from: 
 # http://aws.amazon.com/ec2/pricing
-#
-# This is the price list and utility types for west coast california prices.
-# Anything listed as infinity price means that it is not offered on the
-# west coast but is still an available instance type. If you believe your
-# job flows will never use them, then you don't need to include them.
-#
-# Also, you might notice that the HEAVY_UTIL is all upfront cost. This is due
-# to amazon charging you for heavy utils whether or not they are used, so if
-# you buy a year, you will be charged hourly for the entire year, whether you
-# use it or not. They are still slightly separate. Everything after the plus is
-# HOURLY_PRICE * 24 hours * 365 days, so if Amazon ever changes their price
-# structure, it is easily changeable.
+
 HEAVY_UTIL = "Heavy Utility"
 MEDIUM_UTIL = "Medium Utility"
 LIGHT_UTIL = "Light Utility"
