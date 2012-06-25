@@ -1,20 +1,17 @@
-""" Graphing tools for EMRio that use matplotlib
-
+""" Graphing tools for EMRio.
 
 This tool uses an observer to pull information from a simulation of jobs.
-Once it has that information, it will use that and matplotlib to make
-a graph on the type of graph you specified in the options of instance_tool.
+Once it has that information, it will use hours recorded and matplotlib to make
+graphs from the job flows..
 """
-import matplotlib.pyplot as plt
 import copy
+
 import matplotlib.dates as mdates
-from pytz import timezone
+import matplotlib.pyplot as plt
 
-
-from ec2_cost import EC2
+from config import EC2, TIMEZONE
 from simulate_jobs import Simulator, SimulationObserver
 
-TIME = timezone('US/Alaska')
 COLORS = EC2.color_scheme()
 
 
@@ -66,16 +63,19 @@ def graph_over_time(logged_info, hours_line, job_flows,
 	ylabel='Instances run'):
 	"""Given some sort of data that changes over time, graph the
 	data usage using this"""
+
 	begin_time = min(job.get('startdatetime') for job in job_flows)
 	end_time = max(job.get('enddatetime') for job in job_flows)
+	
+	# The graph looks better ending on a new day, so this changes it to a new day.
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
 
 	for instance_type in EC2.instance_types_in_pool(logged_info):
 		# Locators / Formatters to pretty up the graph.
-		hours = mdates.HourLocator(byhour=None, interval=1, tz=TIME)
-		days = mdates.DayLocator(bymonthday=None, interval=1, tz=TIME)
-		formatter = mdates.DateFormatter("%m/%d ", TIME)
+		hours = mdates.HourLocator(byhour=None, interval=1, tz=TIMEZONE)
+		days = mdates.DayLocator(bymonthday=None, interval=1, tz=TIMEZONE)
+		formatter = mdates.DateFormatter("%m/%d ", TIMEZONE)
 
 		fig = plt.figure()
 		fig.suptitle(instance_type)
@@ -84,15 +84,17 @@ def graph_over_time(logged_info, hours_line, job_flows,
 
 		# Need to plot DEMAND -> HEAVY_UTIL since they are stacked which means
 		# DEMAND will be the largest and needs to be drawn first so others draw over.
-		iterator = copy.deepcopy(EC2.ALL_PRIORITIES)
-		iterator.reverse()
+		all_utilization_classes = copy.deepcopy(EC2.ALL_PRIORITIES)
+		all_utilization_classes.reverse()
 
-		for utilization_class in iterator:
+		for utilization_class in all_utilization_classes:
 			ax.plot(date_list, logged_info[utilization_class][instance_type], color='#000000')
 			ax.plot(date_list[0], logged_info[utilization_class][instance_type][0],
-				color=COLORS[utilization_class], label=utilization_class)
+				color=COLORS[utilization_class],
+				label=utilization_class)
 			ax.fill_between(date_list, logged_info[utilization_class][instance_type],
-				color=COLORS[utilization_class], alpha=1.0,)
+				color=COLORS[utilization_class],
+				alpha=1.0)
 
 		ax.xaxis.set_major_locator(days)
 		ax.xaxis.set_major_formatter(formatter)

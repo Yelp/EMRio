@@ -1,4 +1,4 @@
-"""Inspect job flows and print out reserved instances you should buy.
+"""Inspect job flows to predict reserved instances you should buy.
 
 This module will take job flows from wherever you specify, and use them to
 approximate the amount of reserved instances you should buy and how much money
@@ -11,13 +11,13 @@ documentation here:
 import sys
 from optparse import OptionParser
 
-from ec2_cost import EC2
-from simulate_jobs import Simulator
+from config import EC2
 from graph_jobs import cost_graph
 from graph_jobs import total_hours_graph
-from job_filter import get_job_flows
+from job_handler import get_job_flows
 from optimizer import convert_to_yearly_estimated_hours
 from optimizer import Optimizer
+from simulate_jobs import Simulator
 
 # This is used for calculating on-demand usage.
 EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
@@ -115,9 +115,12 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 
 
 def write_optimal_instances(filename, pool):
-	"""Save optimal results since the data doesn't change too much for a given
-	job flow.
+	"""Save optimal pool results.
 
+	Format for saving is:
+	UTILIZATION_CLASS,INSTANCE_NAME,INSTANCE_COUNT
+
+	An example saved instance file is in the tests folder.
 	Args:
 		filename: name of the file to save the pool to.
 
@@ -131,8 +134,10 @@ def write_optimal_instances(filename, pool):
 
 
 def read_optimal_instances(filename):
-	"""Reads in a file of optimized instances instead of doing the simulation
-	optimization which is slow.
+	"""Reads the file name provided and uses it to create an optimal instance
+	pool.
+	
+	If you want to see the format of these files, check the tests folder.
 
 	Returns:
 		pool: The utilization class and instances read from the file specified.
@@ -148,8 +153,8 @@ def read_optimal_instances(filename):
 
 
 def simulate_job_flows(job_flows, pool):
-	""" Gets the hours used in a simulation with the job flows and pool and
-	the demand hours used as well.
+	"""Simulates the job flows using the pool, and will also simulate pure
+	on-demand hours with no pool and return both.
 
 	Returns:
 		optimal_logged_hours: The amount of hours that each reserved instance

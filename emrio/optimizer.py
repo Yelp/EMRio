@@ -3,9 +3,8 @@ best instance pool that yields the least cost over an interval of time.
 """
 from math import ceil
 from simulate_jobs import Simulator
-from datetime import datetime
 
-from ec2_cost import EC2
+from config import EC2
 
 class Optimizer(object):
 	def __init__(self, job_flows, job_flows_interval=None):
@@ -152,6 +151,6 @@ def convert_to_yearly_estimated_hours(logged_hours, interval):
 			(interval.days + interval.seconds / (24.0 * 60 * 60)))
 	for utilization_class in logged_hours:
 		for machine in logged_hours[utilization_class]:
-			logged_hours[utilization_class][machine] = ceil(
-					logged_hours[utilization_class][machine] * conversion_rate
-				)
+			logged_hours[utilization_class][machine] = (
+				ceil(logged_hours[utilization_class][machine] * conversion_rate))
+

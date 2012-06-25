@@ -7,7 +7,7 @@ The prices are calibrated for US West (Northern California).
 if you want to change that, you need to create your own file in
 ec2 folder and import it here.
 
-If you need a reference, take a look at ec2/test_price.py
+If you need a reference, take a look at test/test_price.py
 
 This class also creates instance pools and logs for storing the hours
 machines run. Their structure is like this:
@@ -21,13 +21,12 @@ UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
 INSTANCE_NAMES is the name that amazon uses for their instance types.
 INSTANCE_COUNT is how many instances are 'bought' for that simulation.
 
-logs to store hours run use the same format except INSTANCE_COUNT is hours run.
-
+Logs: are pools that count the amount of hours that instances run for,
+	so instead of instance_count, instance_hours is stored.
 
 """
 
 import copy
-from ec2.west_coast_prices import COST, RESERVE_PRIORITIES
 
 
 class EC2Info(object):
@@ -41,7 +40,7 @@ class EC2Info(object):
 		all the utilization_class types including DEMAND.
 
 		Args:
-			cost: dict of all the costs (look at comments in the beginning)
+			cost: dict of all the costs (Comes from price configs)
 
 			reserve_priorities: this is all the reserve utilization_classizations in sorted order
 			or priorities.
@@ -64,7 +63,7 @@ class EC2Info(object):
 
 		Args:
 			logged_hours: The amount of hours ran for each instance type on a certain
-				utilization_classization level.
+				utilization class level.
 
 			pool: The amount of reserved instances bought for the logged_hours.
 
@@ -92,11 +91,11 @@ class EC2Info(object):
 		"""Creates an empty reserve pool.
 
 		This takes all the reserve keys and creates an empty dictionary for
-		all the utilization_classization types specified in the cost config file.
+		all the utilization_class types specified in the cost config file.
 
 		Returns:
 			empty_pool: A pool that looks like this:
-				pool= {utilization_classIZATION_NAME: {} }
+				pool= {utilization_class: {} }
 		"""
 		empty_pool = {}
 		for utilization_class in self.RESERVE_PRIORITIES:
@@ -118,7 +117,7 @@ class EC2Info(object):
 		return empty_logged_hours
 
 	def init_reserve_counts(self):
-		"""Has counts of reserves instead of a deeper instance_type dict.
+		"""initializes counts for reserve utilization classes.
 
 		The main use of this is to count the total instances bought. For
 		a certain utilization_classization. The assumption is that this is calculating
@@ -219,4 +218,3 @@ class EC2Info(object):
 				for utilization_class in pool.keys():
 					pool[utilization_class][instance_type] = 0
 
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)

@@ -17,8 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.dates as mdates
 
-from ec2_cost import EC2
-
+from config import EC2
 
 def main(args):
 	option_parser = make_option_parser()

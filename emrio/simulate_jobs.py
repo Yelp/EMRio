@@ -60,8 +60,8 @@ JOB_ID is the id for the job running. The rest is setup like logs and pool.
 """
 
 import datetime
+from config import EC2
 from heapq import heapify, heappop
-from ec2_cost import EC2
 
 # Made END < START so the heap can use secondary sorting
 # if the dates are the same (almost no chance, but possible)
