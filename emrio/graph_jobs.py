@@ -2,7 +2,7 @@
 
 This tool uses an observer to pull information from a simulation of jobs.
 Once it has that information, it will use hours recorded and matplotlib to make
-graphs from the job flows..
+graphs from the job flows.
 """
 import copy
 
@@ -16,13 +16,13 @@ COLORS = EC2.color_scheme()
 
 
 def total_hours_graph(job_flows, pool):
-	"""Graph the total hours used by reserved / ondemand
+	"""Graph the total hours used by reserved / on demand
 	instances over a period of time"""
 	log_hours, hours = record_log_data(job_flows, pool)
 	graph_over_time(log_hours, hours)
 
 
-def cost_graph(job_flows, pool):
+def instance_usage_graph(job_flows, pool):
 	"""This will graph the instances used and the type of
 	instance used over time.
 	"""
@@ -67,7 +67,7 @@ def graph_over_time(logged_info, hours_line, job_flows,
 	begin_time = min(job.get('startdatetime') for job in job_flows)
 	end_time = max(job.get('enddatetime') for job in job_flows)
 	
-	# The graph looks better ending on a new day, so this changes it to a new day.
+	# If end time is during the day, round to the next day so graph looks pretty.
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
 
@@ -82,9 +82,9 @@ def graph_over_time(logged_info, hours_line, job_flows,
 		ax = fig.add_subplot(111)
 		date_list = mdates.date2num(hours_line[instance_type])
 
-		# Need to plot DEMAND -> HEAVY_UTIL since they are stacked which means
-		# DEMAND will be the largest and needs to be drawn first so others draw over.
-		all_utilization_classes = copy.deepcopy(EC2.ALL_PRIORITIES)
+		all_utilization_classes = copy.deepcopy(EC2.ALL_UTILIZATION_PRIORITIES)
+
+		# Reverse so that demand is graphed first, since it should be the largest.
 		all_utilization_classes.reverse()
 
 		for utilization_class in all_utilization_classes:

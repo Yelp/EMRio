@@ -5,7 +5,7 @@ WARNING: If you are using this for calculations, the rates are pulled from
 Amazon's website here: http://aws.amazon.com/ec2/reserved-instances/
 The prices are calibrated for US West (Northern California).
 if you want to change that, you need to create your own file in
-ec2 folder and import it here.
+ec2 folder and use it in config.py.
 
 If you need a reference, take a look at test/test_price.py
 
@@ -36,8 +36,7 @@ class EC2Info(object):
 	"""
 
 	def __init__(self, cost, reserve_priorities):
-		"""Initializes an EC2 instance and ALL_PRIORITIES is
-		all the utilization_class types including DEMAND.
+		"""Sets up the EC2Info object for later calculations.
 
 		Args:
 			cost: dict of all the costs (Comes from price configs)
@@ -55,7 +54,7 @@ class EC2Info(object):
 		for utilization_class in cost.keys():
 			if utilization_class not in all_priorities:
 				all_priorities.append(utilization_class)
-		self.ALL_PRIORITIES = all_priorities
+		self.ALL_UTILIZATION_PRIORITIES = all_priorities
 
 	def calculate_cost(self, logged_hours, pool):
 		"""Calculates the total cost of the pool, and the amount of
@@ -112,7 +111,7 @@ class EC2Info(object):
 			Same as init_empty_reserve_pool except for all utilization_classization types.
 		"""
 		empty_logged_hours = {}
-		for utilization_class in self.ALL_PRIORITIES:
+		for utilization_class in self.ALL_UTILIZATION_PRIORITIES:
 			empty_logged_hours[utilization_class] = {}
 		return empty_logged_hours
 
@@ -168,8 +167,8 @@ class EC2Info(object):
 		red = 255
 		green = 0
 		blue = 240
-		increment = 255 / (len(self.ALL_PRIORITIES) - 1)
-		iterator = copy.deepcopy(self.ALL_PRIORITIES)
+		increment = 255 / (len(self.ALL_UTILIZATION_PRIORITIES) - 1)
+		iterator = copy.deepcopy(self.ALL_UTILIZATION_PRIORITIES)
 		iterator.reverse()  # This puts the worst up first.
 		for utilization_class in iterator:
 			red_hex = hex(red)[2:]

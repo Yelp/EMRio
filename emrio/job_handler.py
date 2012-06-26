@@ -8,8 +8,8 @@ import datetime
 import json
 import pytz
 
-# The user doesn't necessarily need mrjob, so we check to see if
-# they have mrjob, if not, then we use the backup BOTO
+# It is easier to use mrjob, but since it is not a hard dependency, the program
+# checks to see if it has mrjob. If not, it falls back to BOTO
 import boto.exception
 try:
 	mrjob = True
@@ -21,7 +21,7 @@ except ImportError:
 
 
 def get_job_flows(options):
-	"""This will get job_flow data from amazon's cluster or read job flows from
+	"""Get job flows data from amazon's cluster or read job flows from
 	a file.
 
 	Args:
@@ -45,6 +45,7 @@ def get_job_flows(options):
 		date2 = job2.get('startdatetime')
 		return_time = -1 if date1 < date2 else 1
 		return return_time
+
 	# sort job flows before running simulations.
 	job_flows = sorted(job_flows, cmp=sort_by_job_times)
 	return job_flows
@@ -53,6 +54,7 @@ def get_job_flows(options):
 def convert_dates(job_flows):
 	"""Converts the dates of all the jobs to the datetime object
 	since they are originally in unicode strings
+
 	Args:
 		job: Current job being filtered.
 		timezone: The timezone that we want to calculate everything in.
@@ -71,28 +73,28 @@ def convert_dates(job_flows):
 
 
 def no_date_filter(job_flows):
-	"""Looks at a job and sees if it is missing a start or end date,
+	"""Looks at the jobs and sees if they are missing a start or end date,
 	which screws up simulations, so we remove them with this filter.
 
 	Returns:
-		boolean of whether the date is valid
+		Filtered job flows that only have full range of dates.
 	"""
-	new_job_flows = []
+	filtered_job_flows = []
 	for job in job_flows:
 		if job.get('startdatetime') and job.get('enddatetime'):
-			new_job_flows.append(job)
+			filtered_job_flows.append(job)
 	
-	return new_job_flows
+	return filtered_job_flows
 
 
 def range_date_filter(job_flows, min_days, max_days):
-	"""If there is a min or max day, check to see if the job is within the bounds
-	of the range, and remove any that are not.
+	"""Removes any job that is not within the interval of min day and
+	max day and returns the new filtered list.
 
 	Returns:
-		boolean of whether the job is within date range.
+		Returns job flows that ran within the interval of dates allowed.
 	"""
-	new_job_flows = []
+	filtered_job_flows = []
 	if min_days:
 		min_days = datetime.datetime.strptime(min_days, "%Y/%m/%d") 
 		min_days = min_days.replace(tzinfo=pytz.utc)
@@ -100,14 +102,15 @@ def range_date_filter(job_flows, min_days, max_days):
 		max_days = datetime.datetime.strptime(max_days, "%Y/%m/%d") 
 		max_days = max_days.replace(tzinfo=pytz.utc)
 	for job  in job_flows:
-		add_job = True
+		job_within_range = True
 		if min_days and job['startdatetime'] < min_days:
-			add_job = False
+			job_within_range = False
 		if max_days and job['enddatetime'] > max_days:
-			add_job = False
-		if add_job:
-			new_job_flows.append(job)
-	return new_job_flows
+			job_within_range = False
+
+		if job_within_range:
+			filtered_job_flows.append(job)
+	return filtered_job_flows
 
 
 def parse_date(str_date):
@@ -117,8 +120,8 @@ def parse_date(str_date):
 
 
 def handle_job_flows_file(filename):
-	"""If you specify a file of job_flow objects, this function loads them. Will
-	try comma-separated JSON objects and per-line objects before failing.
+	"""Loads job flows from a file specified by the filename. Will
+	try comma-separated JSON objects then per-line objects before failing.
 	"""
 	try:
 		current_file = open(filename, 'r')
@@ -135,7 +138,7 @@ def handle_job_flows_file(filename):
 
 
 def get_job_flows_from_amazon(options):
-	"""gets all the job flows from amazon and converts them into
+	"""Gets all the job flows from amazon and converts them into
 	a dict for compatability with loading from a file
 	"""
 	now = datetime.datetime.utcnow()

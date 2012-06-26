@@ -12,7 +12,7 @@ import sys
 from optparse import OptionParser
 
 from config import EC2
-from graph_jobs import cost_graph
+from graph_jobs import instance_usage_graph
 from graph_jobs import total_hours_graph
 from job_handler import get_job_flows
 from optimizer import convert_to_yearly_estimated_hours
@@ -35,8 +35,8 @@ def main(args):
 
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
-	if options.graph == 'cost':
-		cost_graph(job_flows, pool)
+	if options.graph == 'instance_usage':
+		instance_usage_graph(job_flows, pool)
 	elif options.graph == 'total_usage':
 		total_hours_graph(job_flows, pool)
 
@@ -84,7 +84,7 @@ def make_option_parser():
 		help='Save the optimized results so you dont calculate them multiple times')
 	option_parser.add_option(
 		'-g', '--graph', dest='graph', type='string', default='None',
-		help='Load a graph of the job flows. Current graphs are: cost, total_usage')
+		help='Load a graph of the job flows. Current graphs are: instance_usage, total_usage')
 	return option_parser
 
 

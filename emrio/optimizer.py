@@ -18,10 +18,9 @@ class Optimizer(object):
 	def run(self):
 		"""Take all the max_instance counts, then use that to combinatorically
 		find the most cost efficient instance cost
-		job_flows_interval is the interval of time that all the job flows ran.
-			If none, then it will be calculated in the function.
 
-		returns: dict of best pool of instances to be used.
+		Returns: 
+			optimal_pool: dict of the best pool of instances to be used.
 		"""
 
 		optimized_pool = EC2.init_empty_reserve_pool()
@@ -44,6 +43,7 @@ class Optimizer(object):
 		current_min_cost = float("inf")
 		current_cost = float('inf')
 		current_min_instances = EC2.init_reserve_counts()
+
 		# Calculate the default cost first.
 		logged_hours = simulator.run()
 		convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
@@ -89,38 +89,7 @@ class Optimizer(object):
 
 		for utilization_class in current_min_instances:
 			pool[utilization_class][instance_type] = (
-					current_min_instances[utilization_class]
-				)
-
-	def zero_instance_types(self, pool):
-		"""Use this function to 0 the instance pool
-		with all the keys used in the job flows.
-
-		example: if the job_flows has m1.small, and m1.large
-		and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
-		resultant pool from the function will be:
-
-		pool = {
-			LIGHT_UTIL: {
-				'm1.small': 0, 'm1.large': 0
-			}
-			HEAVY_UTIL: {
-				'm1.small': 0, 'm1.large': 0
-			}
-		}
-		Args:
-			pool: A dict of utilization level dictionaries with nothing in them.
-
-		Mutates:
-			pool: for each utilization type, it fills in all the instance_types
-				that any job uses.
-		Returns: Nothing
-		"""
-		for job in self.job_flows:
-			for instance in job.get('instancegroups'):
-				instance_type = instance.get('instancetype')
-				for utilization_class in pool.keys():
-					pool[utilization_class][instance_type] = 0
+					current_min_instances[utilization_class])
 
 
 def convert_to_yearly_estimated_hours(logged_hours, interval):

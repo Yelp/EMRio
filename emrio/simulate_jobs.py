@@ -239,7 +239,7 @@ class Simulator:
 			instance_type = instance.get('instancetype')
 			instances_needed = int(instance.get('instancerequestcount', 0))
 
-			for utilization_class in EC2.ALL_PRIORITIES:
+			for utilization_class in EC2.ALL_UTILIZATION_PRIORITIES:
 				current_use = pool_used[utilization_class].get(instance_type, 0)
 				space_left = self._calculate_space_left(current_use,
 						utilization_class, instance_type)
@@ -357,7 +357,7 @@ class SimulationObserver(object):
 			# Grab the total usage logs for each util type.
 			# It is a cumulative total to make a stacked graph which looks cooler.
 			total = 0
-			for utilization_class in EC2.ALL_PRIORITIES:
+			for utilization_class in EC2.ALL_UTILIZATION_PRIORITIES:
 				if instance_type not in self.recorder[utilization_class]:
 					self.recorder[utilization_class][instance_type] = []
 				total += data[utilization_class].get(instance_type, 0)
