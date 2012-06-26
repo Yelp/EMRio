@@ -9,6 +9,7 @@ INSTANCE_NAME = 'm1.small'
 INSTANCE_COUNT = 20
 FILE_POOL = EC2.init_empty_reserve_pool()
 class TestEMRio(unittest.TestCase):
+
 	def test_optimal_read(self):
 		"""Reads the test instance file in to make sure it is consistent."""
 	
