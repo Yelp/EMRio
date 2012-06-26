@@ -18,16 +18,16 @@ COLORS = EC2.color_scheme()
 def total_hours_graph(job_flows, pool):
 	"""Graph the total hours used by reserved / on demand
 	instances over a period of time"""
-	log_hours, hours = record_log_data(job_flows, pool)
-	graph_over_time(log_hours, hours)
+	logged_hours_over_time, hours = record_log_data(job_flows, pool)
+	graph_over_time(logged_hours_over_time, hours, job_flows)
 
 
 def instance_usage_graph(job_flows, pool):
 	"""This will graph the instances used and the type of
 	instance used over time.
 	"""
-	used, hours = record_used_instances(job_flows, pool)
-	graph_over_time(used, hours, job_flows)
+	used_instances, hours = record_used_instances(job_flows, pool)
+	graph_over_time(used_instances, hours, job_flows)
 
 
 def record_used_instances(job_flows, pool):
@@ -35,30 +35,30 @@ def record_used_instances(job_flows, pool):
 	'used_pool' during the job simulation at all points of the
 	simulation.
 	"""
-	used_per_hour = EC2.init_empty_all_instance_types()
-	hour_graph = {}
+	used_instances_over_time = EC2.init_empty_all_instance_types()
+	event_times = {}
 	instance_simulator = Simulator(job_flows, pool)
-	observer = SimulationObserver(hour_graph, used_per_hour)
+	observer = SimulationObserver(event_times, used_instances_over_time)
 	instance_simulator.attach_pool_use_observer(observer)
 	instance_simulator.run()
-	return used_per_hour, hour_graph
+	return used_instances_over_time, event_times
 
 
 def record_log_data(job_flows, pool):
 	"""This will set up the record information to graph total hours
 	logged in a simulation over time.
 	"""
-	log_per_hour = EC2.init_empty_all_instance_types()
-	hour_graph = {}
+	logged_hours_per_hour = EC2.init_empty_all_instance_types()
+	event_times = {}
 	log_simulator = Simulator(job_flows, pool)
-	observer = SimulationObserver(hour_graph, log_per_hour)
+	observer = SimulationObserver(event_times, logged_hours_per_hour)
 	log_simulator.attach_log_hours_observer(observer)
 	log_simulator.run()
 
-	return  log_per_hour, hour_graph
+	return  logged_hours_per_hour, event_times
 
 
-def graph_over_time(logged_info, hours_line, job_flows,
+def graph_over_time(info_over_time, hours_line, job_flows,
 	xlabel='Time job ran (in hours)',
 	ylabel='Instances run'):
 	"""Given some sort of data that changes over time, graph the
@@ -71,7 +71,7 @@ def graph_over_time(logged_info, hours_line, job_flows,
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
 
-	for instance_type in EC2.instance_types_in_pool(logged_info):
+	for instance_type in EC2.instance_types_in_pool(info_over_time):
 		# Locators / Formatters to pretty up the graph.
 		hours = mdates.HourLocator(byhour=None, interval=1, tz=TIMEZONE)
 		days = mdates.DayLocator(bymonthday=None, interval=1, tz=TIMEZONE)
@@ -88,11 +88,12 @@ def graph_over_time(logged_info, hours_line, job_flows,
 		all_utilization_classes.reverse()
 
 		for utilization_class in all_utilization_classes:
-			ax.plot(date_list, logged_info[utilization_class][instance_type], color='#000000')
-			ax.plot(date_list[0], logged_info[utilization_class][instance_type][0],
+			ax.plot(date_list, info_over_time[utilization_class][instance_type],
+				color='#000000')
+			ax.plot(date_list[0], info_over_time[utilization_class][instance_type][0],
 				color=COLORS[utilization_class],
 				label=utilization_class)
-			ax.fill_between(date_list, logged_info[utilization_class][instance_type],
+			ax.fill_between(date_list, info_over_time[utilization_class][instance_type],
 				color=COLORS[utilization_class],
 				alpha=1.0)
 

@@ -1,21 +1,22 @@
-# Usage Predictor is a separate tool to look at past usage and predict
-# the future usage. It does so by attempting to find a linear regression
-# curve and then looking further along the curve to find the future hour
-# use. It creates a graph of what it is doing so that way a person can
-# make sure that the points that the graph is using is valid or not.
-# By valid, I mean there is the chance that billing can be erratic and so
-# use of this tool would be limited if the graph shows erratic points that
-# it used for the linear regression.
+"""Usage Predictor is a separate tool to look at past usage and predict
+the future usage. It does so by attempting to find a linear regression
+curve and then looking further along the curve to find the future hour
+use. It creates a graph of what it is doing so that way a person can
+make sure that the points that the graph is using is valid or not.
+By valid, I mean there is the chance that billing can be erratic and so
+use of this tool would be limited if the graph shows erratic points that
+it used for the linear regression.
+"""
 
-from optparse import OptionParser
-from datetime import datetime
 import csv
-import sys
 import re
+import sys
+from datetime import datetime
+from optparse import OptionParser
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.dates as mdates
 
 from config import EC2
 
@@ -30,7 +31,7 @@ def main(args):
 
 
 def predict_future_billing_multiplier(file_name, current_date, future_time,
-									id):
+					id):
 	""" This function is used to pull data from a CSV file and
 	then use that usage data to predict future usage hours.
 
@@ -53,7 +54,7 @@ def predict_future_billing_multiplier(file_name, current_date, future_time,
 		if len(types.keys()) != 0:
 			predict_future(0, 0, types)
 			multiplier = predict_future((current_date + future_time),
-										different_bills[id])
+						different_bills[id])
 	return multiplier
 
 
@@ -187,8 +188,6 @@ def show_billing_graph(account, id):
 		account: A list of CSV objects for a specific account to graph.
 		id: The account id to display on the name of the graph.
 
-	Returns:
-		nothing
 	"""
 	types = filter_bills(account)
 	graph_bills(types, id)
@@ -219,6 +218,9 @@ def filter_bills(account):
 		# We only care about EMR billing. Cut the rest.
 		if bill["Product Name"] != "Amazon Elastic MapReduce":
 			continue
+
+		# Currently, EMR instance types are in parenthesis (m1.small)
+		# So regex them to fine the instance type.
 		matches = re.findall('\((.*?)\)', bill["Item Description"])
 		for match in matches:
 			if match in EC2.TYPE_NAMES:
@@ -231,14 +233,14 @@ def filter_bills(account):
 	return types
 
 
-def filter_outliers(i_type_nodes):
+def filter_outliers(instance_type_nodes):
 	"""Remove billing months with huge deviations from other billing months.
 
 	Computes the standard deviation and will remove and billing months that have
 	large differences from the mean amount.
 
 	Args:
-		i_type_nodes: A dict where the keys are the datetimes that billing occured
+		instance_type_nodes: A dict where the keys are the datetimes that billing occured
 			and values are the amount of hours used for that date.
 
 	Returns (In order):
@@ -258,10 +260,10 @@ def filter_outliers(i_type_nodes):
 	outlier_dates = []
 	computation_list = []
 
-	key_list = i_type_nodes.keys()
+	key_list = instance_type_nodes.keys()
 	key_list.sort()
 	for date_node in key_list:
-		computation_list.append(i_type_nodes[date_node])
+		computation_list.append(instance_type_nodes[date_node])
 
 	# Calculate the bounds of acceptable data values.
 	standard_deviation = np.std(computation_list)
@@ -272,10 +274,10 @@ def filter_outliers(i_type_nodes):
 	# Filter out the outliers into its own list of dates and
 	# usage points.
 	for date_node in key_list:
-		usage_stat = i_type_nodes[date_node]
+		usage_stat = instance_type_nodes[date_node]
 		if usage_stat >= lower_bound and usage_stat <= upper_bound:
 			date_list.append(date_node)
-			usage_list.append(i_type_nodes[date_node])
+			usage_list.append(instance_type_nodes[date_node])
 		else:
 			outlier_list.append(usage_stat)
 			outlier_dates.append(date_node)
@@ -293,12 +295,12 @@ def graph_bills(types, id):
 
 	Returns: Nothing.
 	"""
-	for i_type in types:
+	for instance_type in types:
 		months = mdates.MonthLocator()
 		formatter = mdates.DateFormatter("%m/%Y ")
 
 		usage_list, date_list, outlier_list, outlier_dates = (
-			filter_outliers(types[i_type])
+			filter_outliers(types[instance_type])
 		)
 		fig = plt.figure()
 		fig.suptitle('EC2 Monthly Hour Usage for Account: ' + id)

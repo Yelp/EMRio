@@ -1,9 +1,11 @@
-"""The job handler does the following:
--translates the datetimes from unicode to datetime objects.
--will filter out max and min dates if specified in options
--will remove demunitive jobs that have no start or end dates.
+"""Job handler will pull and filter appropriate jobs.
 
+Job handler will translate boto.job_flow objects to dicts,
+translate the unicode dates to datetime objects, remove any job flows
+that do not have start or end times and filter the min and max dates
+input from the user.
 """
+
 import datetime
 import json
 import pytz
@@ -16,7 +18,6 @@ try:
 	from mrjob.emr import EMRJobRunner
 except ImportError:
 	mrjob = None
-
 	from boto.emr.connection import EmrConnection
 
 
@@ -39,6 +40,7 @@ def get_job_flows(options):
 	job_flows = no_date_filter(job_flows)
 	job_flows = convert_dates(job_flows)
 	job_flows = range_date_filter(job_flows, options.min_days, options.max_days)
+
 	def sort_by_job_times(job1, job2):
 		"""Sorting comparator for job_flow objects"""
 		date1 = job1.get('startdatetime')
@@ -57,14 +59,12 @@ def convert_dates(job_flows):
 
 	Args:
 		job: Current job being filtered.
-		timezone: The timezone that we want to calculate everything in.
 
 	Mutates:
 		job.startdatetime: Changes from unicode to datetime.
 		job.enddatetime: Changes from unicode to datetime
-
-	Returns: Nothing.
 	"""
+
 	for job in job_flows:
 		job['startdatetime'] = parse_date(job['startdatetime'])
 		job['enddatetime'] = parse_date(job['enddatetime'])
@@ -79,6 +79,7 @@ def no_date_filter(job_flows):
 	Returns:
 		Filtered job flows that only have full range of dates.
 	"""
+
 	filtered_job_flows = []
 	for job in job_flows:
 		if job.get('startdatetime') and job.get('enddatetime'):
@@ -94,6 +95,7 @@ def range_date_filter(job_flows, min_days, max_days):
 	Returns:
 		Returns job flows that ran within the interval of dates allowed.
 	"""
+
 	filtered_job_flows = []
 	if min_days:
 		min_days = datetime.datetime.strptime(min_days, "%Y/%m/%d") 
@@ -114,6 +116,14 @@ def range_date_filter(job_flows, min_days, max_days):
 
 
 def parse_date(str_date):
+	"""Changes a string that conforms to iso8601 to a non-naive datetime
+	object.
+	
+	Args:
+		str_date: string in the iso8601 format.
+
+	Returns: datetime.datetime object in UTC tz.	
+	"""
 	current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
 	current_date = current_date.replace(tzinfo=pytz.utc)
 	return current_date
@@ -127,6 +137,7 @@ def handle_job_flows_file(filename):
 		current_file = open(filename, 'r')
 		contents = current_file.read().rstrip('\n')[:-1]
 		job_flows = json.loads(contents)
+		current_file.close()
 		return job_flows
 	except ValueError:
 		print "Failed parsing pure json, trying back up format now..."
@@ -134,6 +145,7 @@ def handle_job_flows_file(filename):
 	current_file = open(filename, 'r')
 	for line in current_file.readlines():
 		job_flows.append(json.loads(line))
+	current_file.close()
 	return job_flows
 
 
@@ -242,5 +254,4 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 				created_before = datetime.utcnow()
 			created_before -= datetime.timedelta(weeks=2)
 	return all_job_flows
-
 

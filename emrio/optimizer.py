@@ -62,12 +62,13 @@ class Optimizer(object):
 				for current_util in pool:
 					pool[current_util][instance_type] = current_min_instances[current_util]
 				pool[utilization_class][instance_type] = (
-						current_min_instances[utilization_class] + 1
-					)
+						current_min_instances[utilization_class] + 1)
 				logged_hours = simulator.run()
 				convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
 				current_simulation_costs[utilization_class] = EC2.calculate_cost(
-					logged_hours, pool)
+					logged_hours,
+					pool)
+
 			previous_cost = current_cost
 			current_cost = min(current_simulation_costs.values())
 			min_util_level = None

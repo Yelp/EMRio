@@ -1,14 +1,6 @@
 """This module is used for creating instance pools and calculating the
 cost of running EC2 machines.
 
-WARNING: If you are using this for calculations, the rates are pulled from
-Amazon's website here: http://aws.amazon.com/ec2/reserved-instances/
-The prices are calibrated for US West (Northern California).
-if you want to change that, you need to create your own file in
-ec2 folder and use it in config.py.
-
-If you need a reference, take a look at test/test_price.py
-
 This class also creates instance pools and logs for storing the hours
 machines run. Their structure is like this:
 pool = {
@@ -39,7 +31,7 @@ class EC2Info(object):
 		"""Sets up the EC2Info object for later calculations.
 
 		Args:
-			cost: dict of all the costs (Comes from price configs)
+			cost: dict of all the costs (Comes from price configurations)
 
 			reserve_priorities: this is all the reserve utilization_classizations in sorted order
 			or priorities.
@@ -75,15 +67,13 @@ class EC2Info(object):
 			for instance_type in pool[utilization_class]:
 				cost += (
 					self.COST[utilization_class][instance_type]['upfront'] *
-					pool[utilization_class][instance_type]
-				)
+					pool[utilization_class][instance_type])
 		# Hourly cost calculation
 		for utilization_class in logged_hours:
 			for instance_type in logged_hours[utilization_class]:
 				cost += (
 					self.COST[utilization_class][instance_type]['hourly'] *
-					logged_hours[utilization_class][instance_type]
-				)
+					logged_hours[utilization_class][instance_type])
 		return cost
 
 	def init_empty_reserve_pool(self):
@@ -102,10 +92,11 @@ class EC2Info(object):
 		return empty_pool
 
 	def init_empty_all_instance_types(self):
-		"""This will create a dict of all instance types.
+		"""Create a dict of all utilization types.
 
-		Every utilization_class type will be initialized here, while reserve pool only does
-		reserves.
+		Every utilization_class type will be initialized here. This differs from
+		init_empty_reserve_pool since that only initializes reserved utilization
+		classes while this will include others like on demand.
 
 		Returns:
 			Same as init_empty_reserve_pool except for all utilization_classization types.
@@ -118,7 +109,7 @@ class EC2Info(object):
 	def init_reserve_counts(self):
 		"""initializes counts for reserve utilization classes.
 
-		The main use of this is to count the total instances bought. For
+		The main use of this is to count the total instances bought for
 		a certain utilization_classization. The assumption is that this is calculating
 		for a single instance_type, so that info doesn't need recording.
 
@@ -168,9 +159,9 @@ class EC2Info(object):
 		green = 0
 		blue = 240
 		increment = 255 / (len(self.ALL_UTILIZATION_PRIORITIES) - 1)
-		iterator = copy.deepcopy(self.ALL_UTILIZATION_PRIORITIES)
-		iterator.reverse()  # This puts the worst up first.
-		for utilization_class in iterator:
+		all_utilization_types = copy.deepcopy(self.ALL_UTILIZATION_PRIORITIES)
+		all_utilization_types.reverse()  # This puts the worst up first.
+		for utilization_class in all_utilization_types:
 			red_hex = hex(red)[2:]
 			green_hex = hex(green)[2:]
 			blue_hex = hex(blue)[2:]

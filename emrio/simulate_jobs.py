@@ -7,43 +7,11 @@ it can, according to Amazon's guidelines on reserved instances. It will
 record the individual utilization types of reserved instances so you can get
 detailed hour usage on the reserved instances.
 
-In order to read the job sim code, you need to understand how Amazon bills
-for reserved instances vs on-demand. Basically, if there are reserved
-instances of a type available, the hour will be charged for reserved.
-Amazon will use High Util -> Med Util -> Light since it is the most
-optimized for billing.
+Some useful variables that are used frequently in Simulator:
 
-The job simulator works by breaking each job into hours it ran. Then using
-an instance pool that a user or another program inputs that tells how many
-Heavy, Medium and Light Util instances of a type you have. The jobs will be
-ran on these instances if they are available, otherwise they are on-demand.
-
-Some useful definitions of variables used a lot are given below:
-'pool'- This is a storage variable that holds the amount of instances
-		currently bought. Since there are multiple levels of utilization
-		and multiple instance types, the layout of pool is like this:
-pool = {
-	UTILIZATION_LEVEL: {
-		INSTANCE_NAME: INSTANCE_COUNT
-	}
-}
-UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
-		http://aws.amazon.com/ec2/reserved-instances/#2
-INSTANCE_NAMES is the name that amazon uses for their instance types.
-INSTANCE_COUNT is how many instances are 'bought' for that simulation.
-
-used_pool- is the same as pool but is used to keep track of instances in
-		use while pool describes how many you have.
-
-logs- is the amount of hours that an instance type at a util level has run
+logged_hours- is the amount of hours that an instance type at a util level has run
 		in the span of the job flows. It is structured the same as pool except
 		INSTANCE_COUNT is hours ran.
-
-job_flows- This is a list of sorted translated-job-dict-objects. Jobs are
-		based on the boto JobFlow object, except in dict form. Currently, we
-		only use start and end times, jobflowids, and instancegroups and
-		instancegroup objects. More info can be found here:
-		boto.cloudhackers.com/en/latest/ref/emr.html#boto.emr.emrobject.JobFlow
 
 jobs_running (sometimes called jobs) - This is a dict of currently running
 		jobs in the simulator. This is how it is structured:
@@ -82,9 +50,8 @@ class Simulator:
 	def run(self):
 		"""Will simulate a job flow using a reserved instance pool.
 
-		The purpose of this function is to record an on-demand job flow history
-		as if it was on reserved instances, and then log results of how many hours
-		the reserved instances were used.
+		Record a job flow history as if it was on reserved instances, and then log
+		results of how many hours the reserved instances were used.
 
 		Args:
 			job_flows: list of jobs (which are dicts) which run the jobs in the list
@@ -337,14 +304,33 @@ class Simulator:
 			return float('inf')
 
 class SimulationObserver(object):
+	"""Used to record information during each step of the simulation. 
+	
+	You can attach a SimulationObserver to a Simulator if you want information
+	about each event. For example, the graph module uses the SimulationObserver
+	to record the instances used during each event of the simulator so that it can
+	graph used instances over time.
+	"""
 	def __init__(self, hour_graph, recorder):
 		self.hour_graph = hour_graph
 		self.recorder = recorder
 	
 	def update(self, time, node_type, job, data):
-		"""Logs all instance hour useage for each time node in the
-		priority queue. The logger is called twice in a single event.
-		So this records the state of log pool before and after some event"""
+		"""Records data usage for each time node in the priority queue. The logger
+		is called twice in a single event. So this records the state of the 
+		simulator before and after some event
+
+		Args:
+			time: The datetime that the event occurred at.
+
+			node_type: The event type (START, LOG or END)
+
+			job: The individual job that is affected during this event.
+
+			data: Currently either pool_used or logged_hours. You attach the
+				observer to one of those (look at Simulator attach functions)
+				and that is what data will become.
+		"""
 
 		for instance in job.get('instancegroups'):
 			instance_type = instance.get('instancetype')
