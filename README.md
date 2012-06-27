@@ -11,7 +11,7 @@ Reserved Instances work by paying an upfront price and then paying less hourly c
 
 How It Works
 ------------
-EMRio first looks at your previous job flow usage that you supply it. If you don't supply a file to EMRio, it uses Amazon data with either Boto or mrjobs. That data has a two month limit, so it is a good idea to save that history every two months and combine them to get better results later down the road. It then acts as if the job flow was reoccurring for a year -- in case you supply less than a years worth of data, it has to estimate a year's worth of data for Reserved Instances to be worth the cost. It then simulates different configurations using the job flow history and will produce the best pool of instances to buy. 
+EMRio first looks at your EMR history. That data has a two month limit. It then acts as if the job flow was reoccurring for a year -- in case you supply less than a years worth of data, it has to estimate a year's worth of data for Reserved Instances to be worth the cost. It then simulates different configurations using the job flow history and will produce the best pool of instances to buy. 
 
 Dependencies
 ------------

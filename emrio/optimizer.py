@@ -1,9 +1,10 @@
 """The optimizer module holds all the functions relating to creating the
 best instance pool that yields the least cost over an interval of time.
 """
+import logging
 from math import ceil
-from simulate_jobs import Simulator
 
+from simulate_jobs import Simulator
 from config import EC2
 
 class Optimizer(object):
@@ -29,6 +30,7 @@ class Optimizer(object):
 		# knows all the instance_types the job flows use beforehand.
 		EC2.zero_instance_types(self.job_flows, optimized_pool)
 		for instance in EC2.instance_types_in_pool(optimized_pool):
+			logging.debug("Finding optimal instances for %s", instance)
 			self.brute_force_optimize(instance, optimized_pool)
 		return optimized_pool
 
@@ -87,7 +89,8 @@ class Optimizer(object):
 			for current_util in pool:
 				pool[current_util][instance_type] = (
 					current_min_instances[utilization_class])
-
+			logging.debug("Current best minimum cost for %s: %d", instance_type,
+					current_min_cost)
 		for utilization_class in current_min_instances:
 			pool[utilization_class][instance_type] = (
 					current_min_instances[utilization_class])

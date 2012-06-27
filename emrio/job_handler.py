@@ -181,7 +181,6 @@ def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	if now is None:
 		now = datetime.datetime.utcnow()
 	emr_conn = None
-	print conf_path
 	if mrjob:
 		emr_conn = EMRJobRunner(conf_path=conf_path).make_emr_conn()
 	else:

@@ -1,14 +1,15 @@
-"""Inspect job flows to predict reserved instances you should buy.
+"""Inspect job flows to predict optimal pool of reserved instances that
+minimizes the cost.
 
 This module will take job flows from wherever you specify, and use them to
 approximate the amount of reserved instances you should buy and how much money
 you will save by doing so. 
 
 If you are looking for instructions to run the program, look at the
-documentation here:
-	~LINK TO DOCUMENTATION~
+readme in the root EMRio folder.
 """
 import sys
+import logging
 from optparse import OptionParser
 
 from config import EC2
@@ -26,15 +27,19 @@ EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
 def main(args):
 	option_parser = make_option_parser()
 	options, args = option_parser.parse_args(args)
-
+	logging.basicConfig(level=logging.INFO)
+	if options.verbose:
+		logging.basicConfig(level=logging.DEBUG)
+	logging.debug('Getting job flows...')
 	job_flows = get_job_flows(options)
 
+	logging.info('Finding optimal instance pool (this may take a minute or two)...')
 	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save)
 	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
 		pool)
-
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
+	logging.debug('Making graphs...')
 	if options.graph == 'instance_usage':
 		instance_usage_graph(job_flows, pool)
 	elif options.graph == 'total_usage':
@@ -202,9 +207,9 @@ def output_statistics(log, pool, demand_log,):
 			print "\t%s: %d" % (machine, demand_log[utilization_class][machine])
 
 	print "Cost difference:"
-	print "Cost for Reserved Instance: ", optimized_cost
-	print "Cost for all On-Demand: ", demand_cost
-	print "Money Saved: ", (demand_cost - optimized_cost)
+	print "Cost for Reserved Instance: $%.2f " % optimized_cost
+	print "Cost for all On-Demand: $%.2f" % demand_cost
+	print "Money Saved: $%.2f" % (demand_cost - optimized_cost)
 
 
 if __name__ == '__main__':
