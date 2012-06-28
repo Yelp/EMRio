@@ -12,6 +12,8 @@ import sys
 import logging
 from optparse import OptionParser
 
+import boto
+
 from config import EC2
 from graph_jobs import instance_usage_graph
 from graph_jobs import total_hours_graph
@@ -112,7 +114,7 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 	if optimized_filename:
 		pool = read_optimal_instances(optimized_filename)
 	else:
-		pool = Optimizer(job_flows).run()
+		pool = Optimizer(job_flows, EC2).run()
 
 	if save_filename:
 		write_optimal_instances(save_filename, pool)
@@ -181,6 +183,54 @@ def simulate_job_flows(job_flows, pool):
 	convert_to_yearly_estimated_hours(optimal_logged_hours, interval_job_flows)
 	return optimal_logged_hours, demand_logged_hours
 
+def get_owned_reserved_instances():
+	"""Pulls the currently owned reserved instances from Amazon AWS
+	
+	Returns:
+		purchased_reserved_instances: A dict of instances you currently own.
+		looks like:
+		instances = {
+			UTILIZATION_CLASS: {
+				INSTANCE_NAME: OWNED_AMOUNT
+			}
+		}
+	"""
+	ec2_conn = boto.connect_ec2()
+	boto_reserved_instances = ec2_conn.get_all_reserved_instances()
+	ec2_conn.close()
+	purchased_reserved_instances = EC2.init_empty_reserve_pool()
+	for reserved_instance in boto_reserved_instances:
+		utilization_class = reserved_instance.offeringType
+		instance_type = reserved_instance.instance_type
+		purchased_reserved_instances[utilization_class][instance_type] += (
+			reserved_instance.instance_count)	
+	return purchased_reserved_instances
+
+
+def calculate_instances_to_buy(purchased_instances, optimal_pool):
+	"""Calculate the amount of instances to buy from amazon.
+
+	Takes the difference of purchased instances from optimal pool or -1 if
+	too many instances are already owned than the optimal amount.
+	
+	Args:
+		purchased_instances: The amount of instances currently owned.
+
+		optimal_pool: The calculated amount of instances that minimizes the cost
+			based on the job flows.
+	Returns:
+		reserved_instances_to_buy: A dict of instances to buy. Structured like pool.
+	"""
+	calculated_difference = lambda y, x: x if x - y >= 0 else -1 
+	reserved_instances_to_buy = EC2.init_empty_reserve_pool()
+
+	for utilization_class in optimal_pool:
+		for instance_type in optimal_pool[utilization_class]:
+			reserved_instances_to_buy[utilization_class][instance_type] = (
+				calculated_difference(purchased_instances[utilization_class][instance_type],
+					optimal_pool[utilization_class][instance_type]))
+	return reserved_instances_to_buy
+
 
 def output_statistics(log, pool, demand_log,):
 	"""Once everything is calculated, output here"""
@@ -188,24 +238,28 @@ def output_statistics(log, pool, demand_log,):
 	optimized_cost = EC2.calculate_cost(log, pool)
 	demand_cost = EC2.calculate_cost(demand_log, EMPTY_INSTANCE_POOL)
 
-	for utilization_class in pool:
-		print utilization_class, "Instance Pool Used ***************"
-		for machine in pool[utilization_class]:
-			print "\t%s: %d" % (machine, pool[utilization_class][machine])
-		print ""
+	owned_reserved_instances = get_owned_reserved_instances()
+	buy_instances = calculate_instances_to_buy(owned_reserved_instances, pool)
 
-	for utilization_class in log:
-		print utilization_class, "Hours Used **************"
-		for machine in log[utilization_class]:
-			print "\t%s: %d" % (machine, log[utilization_class][machine])
+	all_instances = EC2.instance_types_in_pool(pool)
+	all_instances.union(EC2.instance_types_in_pool(owned_reserved_instances))
 
-	print
-	print "ENTIRELY ON DEMAND STATISTICS"
-	print " Hours Used **************"
+	print "%20s %15s %15s %15s" % ('', 'Optimal', 'Owned', 'To Purchase')
+	for utilization_class in EC2.RESERVE_PRIORITIES:
+		print "%-20s" % (utilization_class)
+		for machine in all_instances:
+			print "%20s %15d %15d %15d" % (machine,
+				pool[utilization_class][machine],
+				owned_reserved_instances[utilization_class][machine],
+				buy_instances[utilization_class][machine])
+	
+	print 
+	print " Hours Used By Instance type **************"
 	for utilization_class in demand_log:
 		for machine in demand_log[utilization_class]:
 			print "\t%s: %d" % (machine, demand_log[utilization_class][machine])
 
+	print 
 	print "Cost difference:"
 	print "Cost for Reserved Instance: $%.2f " % optimized_cost
 	print "Cost for all On-Demand: $%.2f" % demand_cost

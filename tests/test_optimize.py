@@ -57,7 +57,7 @@ class TestOptimizeFunctions(TestCase):
 		# Jobs done in parallel over long amounts of time should be additive.
 		# This means that reserve will be the sum of all jobs.
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[HEAVY_UTIL], reserve_log)
 
 	def test_medium_util(self):
@@ -66,7 +66,7 @@ class TestOptimizeFunctions(TestCase):
 		current_jobs = create_parallel_jobs(JOB_AMOUNT, end_time=end_time)
 
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[MEDIUM_UTIL], reserve_log)
 
 	def test_light_util(self):
@@ -75,7 +75,7 @@ class TestOptimizeFunctions(TestCase):
 		current_jobs = create_parallel_jobs(JOB_AMOUNT, end_time=end_time)
 
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
 
 	def test_sequential_jobs(self):
@@ -94,7 +94,7 @@ class TestOptimizeFunctions(TestCase):
 			current_time = end_time
 			end_time += interval
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
 		pass
 
@@ -106,7 +106,7 @@ class TestOptimizeFunctions(TestCase):
 		current_jobs.extend(create_parallel_jobs(JOB_AMOUNT, end_time=end_time,
 												start_count=JOB_AMOUNT))
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * JOB_AMOUNT}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[MEDIUM_UTIL], reserve_log)
 		self.assertEquals(optimized[HEAVY_UTIL], reserve_log)
 
@@ -122,7 +122,7 @@ class TestOptimizeFunctions(TestCase):
 		current_jobs.extend(create_parallel_jobs(JOB_AMOUNT, end_time=end_time_light,
 												start_count=JOB_AMOUNT * 2))
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * JOB_AMOUNT}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEquals(optimized[MEDIUM_UTIL], reserve_log)
 		self.assertEquals(optimized[HEAVY_UTIL], reserve_log)
 		self.assertEquals(optimized[LIGHT_UTIL], reserve_log)
@@ -130,7 +130,7 @@ class TestOptimizeFunctions(TestCase):
 	def test_zero_jobs(self):
 		"""This should return a zero instance pool since no jobs are ran"""
 		no_jobs = []
-		optimized = Optimizer(no_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(no_jobs, EC2, DAY_INCREMENT).run()
 		self.assertEqual(optimized, EMPTY_POOL)
 
 	def test_spikey_jobs(self):
@@ -140,7 +140,7 @@ class TestOptimizeFunctions(TestCase):
 		current_jobs = create_parallel_jobs(JOB_AMOUNT * 100, end_time=end_time)
 
 		empty_type = {INSTANCE_NAME: 0}
-		optimized = Optimizer(current_jobs, DAY_INCREMENT).run()
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run()
 		for util in optimized:
 			self.assertEquals(optimized[util], empty_type)
 

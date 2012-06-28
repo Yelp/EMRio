@@ -2,9 +2,9 @@
 # data taken from: 
 # http://aws.amazon.com/ec2/pricing
 
-HEAVY_UTIL = "Heavy Utility"
-MEDIUM_UTIL = "Medium Utility"
-LIGHT_UTIL = "Light Utility"
+HEAVY_UTIL = "Heavy Utilization"
+MEDIUM_UTIL = "Medium Utilization"
+LIGHT_UTIL = "Light Utilization"
 DEMAND = "On Demand"
 RESERVE_PRIORITIES = [HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL]
 COST = {

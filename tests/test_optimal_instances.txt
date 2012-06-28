@@ -1,3 +1,3 @@
-Heavy Utility,m1.small,20
-Medium Utility,m1.small,20
-Light Utility,m1.small,20
+Heavy Utilization,m1.small,20
+Medium Utilization,m1.small,20
+Light Utilization,m1.small,20

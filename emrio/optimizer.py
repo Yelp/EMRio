@@ -5,10 +5,10 @@ import logging
 from math import ceil
 
 from simulate_jobs import Simulator
-from config import EC2
 
 class Optimizer(object):
-	def __init__(self, job_flows, job_flows_interval=None):
+	def __init__(self, job_flows, EC2, job_flows_interval=None):
+		self.EC2 = EC2
 		self.job_flows = job_flows
 		self.job_flows_interval = job_flows_interval
 		if job_flows_interval is None:
@@ -24,12 +24,12 @@ class Optimizer(object):
 			optimal_pool: dict of the best pool of instances to be used.
 		"""
 
-		optimized_pool = EC2.init_empty_reserve_pool()
+		optimized_pool = self.EC2.init_empty_reserve_pool()
 
 		# Zero-ing the instances just makes it so the optimized pool
 		# knows all the instance_types the job flows use beforehand.
-		EC2.zero_instance_types(self.job_flows, optimized_pool)
-		for instance in EC2.instance_types_in_pool(optimized_pool):
+		self.EC2.zero_instance_types(self.job_flows, optimized_pool)
+		for instance in self.EC2.instance_types_in_pool(optimized_pool):
 			logging.debug("Finding optimal instances for %s", instance)
 			self.brute_force_optimize(instance, optimized_pool)
 		return optimized_pool
@@ -44,16 +44,16 @@ class Optimizer(object):
 		previous_cost = float('inf')
 		current_min_cost = float("inf")
 		current_cost = float('inf')
-		current_min_instances = EC2.init_reserve_counts()
+		current_min_instances = self.EC2.init_reserve_counts()
 
 		# Calculate the default cost first.
 		logged_hours = simulator.run()
 		convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
-		current_min_cost = EC2.calculate_cost(logged_hours, pool)
+		current_min_cost = self.EC2.calculate_cost(logged_hours, pool)
 		current_cost = current_min_cost
 
 		while previous_cost >= current_cost:
-			current_simulation_costs = EC2.init_reserve_counts()
+			current_simulation_costs = self.EC2.init_reserve_counts()
 			for utilization_class in current_simulation_costs:
 				current_simulation_costs[utilization_class] = float('inf')
 
@@ -67,7 +67,7 @@ class Optimizer(object):
 						current_min_instances[utilization_class] + 1)
 				logged_hours = simulator.run()
 				convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
-				current_simulation_costs[utilization_class] = EC2.calculate_cost(
+				current_simulation_costs[utilization_class] = self.EC2.calculate_cost(
 					logged_hours,
 					pool)
 

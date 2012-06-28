@@ -1,9 +1,9 @@
 """This is a test configuration on how you should structure a price configuration file."""
 
 ####### Define all utilization classes and non-reserved instance types ######
-HEAVY_UTIL = "Heavy Utility"
-MEDIUM_UTIL = "Medium Utility"
-LIGHT_UTIL = "Light Utility"
+HEAVY_UTIL = "Heavy Utilization"
+MEDIUM_UTIL = "Medium Utilization"
+LIGHT_UTIL = "Light Utilization"
 DEMAND = "On Demand"
 
 # You need to specify the priority in which reserved instances should be run.

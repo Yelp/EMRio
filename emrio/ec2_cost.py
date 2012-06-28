@@ -19,7 +19,7 @@ Logs: are pools that count the amount of hours that instances run for,
 """
 
 import copy
-
+from collections import defaultdict
 
 class EC2Info(object):
 	"""This class is used to store EC2 info like costs from the config
@@ -88,7 +88,7 @@ class EC2Info(object):
 		"""
 		empty_pool = {}
 		for utilization_class in self.RESERVE_PRIORITIES:
-			empty_pool[utilization_class] = {}
+			empty_pool[utilization_class] = defaultdict(int)
 		return empty_pool
 
 	def init_empty_all_instance_types(self):
