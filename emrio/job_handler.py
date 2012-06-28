@@ -10,15 +10,8 @@ import datetime
 import json
 import pytz
 
-# It is easier to use mrjob, but since it is not a hard dependency, the program
-# checks to see if it has mrjob. If not, it falls back to BOTO
 import boto.exception
-try:
-	mrjob = True
-	from mrjob.emr import EMRJobRunner
-except ImportError:
-	mrjob = None
-	from boto.emr.connection import EmrConnection
+from boto.emr.connection import EmrConnection
 
 
 def get_job_flows(options):
@@ -181,10 +174,7 @@ def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	if now is None:
 		now = datetime.datetime.utcnow()
 	emr_conn = None
-	if mrjob:
-		emr_conn = EMRJobRunner(conf_path=conf_path).make_emr_conn()
-	else:
-		emr_conn = EmrConnection()
+	emr_conn = EmrConnection()
 	# if --max-days-ago is set, only look at recent jobs
 	created_after = None
 	if max_days_ago is not None:
@@ -234,7 +224,6 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 
 		# don't count the same job flow twice
 		job_flows = [jf for jf in results if jf.jobflowid not in ids_seen]
-
 		all_job_flows.extend(job_flows)
 		ids_seen.update(jf.jobflowid for jf in job_flows)
 

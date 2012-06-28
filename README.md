@@ -15,12 +15,14 @@ EMRio first looks at your EMR history. That data has a two month limit. It then 
 
 Dependencies
 ------------
-	-mrjob(or boto)
+	-boto
 	-tzinfo
 	-matplotlib
 How to Run EMRio
 ----------------
-Once you have the dependencies installed, you just run::
+Once you have the dependencies installed, you need to set up your boto configuration file. Look at our boto config as an example.
+
+After that is setup, just run:
 
 	python EMRio.py
 
