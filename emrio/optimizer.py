@@ -16,19 +16,18 @@ class Optimizer(object):
 			max_time = max(job.get('enddatetime') for job in job_flows)
 			self.job_flows_interval = max_time - min_time
 
-	def run(self):
+	def run(self, optimized_pool=None):
 		"""Take all the max_instance counts, then use that to combinatorically
 		find the most cost efficient instance cost
 
 		Returns: 
 			optimal_pool: dict of the best pool of instances to be used.
 		"""
-
-		optimized_pool = self.EC2.init_empty_reserve_pool()
-
+		if optimized_pool is None:
+			optimized_pool = self.EC2.init_empty_reserve_pool()
 		# Zero-ing the instances just makes it so the optimized pool
 		# knows all the instance_types the job flows use beforehand.
-		self.EC2.zero_instance_types(self.job_flows, optimized_pool)
+		self.EC2.fill_instance_types(self.job_flows, optimized_pool)
 		for instance in self.EC2.instance_types_in_pool(optimized_pool):
 			logging.debug("Finding optimal instances for %s", instance)
 			self.brute_force_optimize(instance, optimized_pool)
@@ -44,7 +43,7 @@ class Optimizer(object):
 		previous_cost = float('inf')
 		current_min_cost = float("inf")
 		current_cost = float('inf')
-		current_min_instances = self.EC2.init_reserve_counts()
+		current_min_instances = self.EC2.init_reserve_counts(pool, instance_type)
 
 		# Calculate the default cost first.
 		logged_hours = simulator.run()
@@ -53,7 +52,7 @@ class Optimizer(object):
 		current_cost = current_min_cost
 
 		while previous_cost >= current_cost:
-			current_simulation_costs = self.EC2.init_reserve_counts()
+			current_simulation_costs = self.EC2.init_reserve_costs()
 			for utilization_class in current_simulation_costs:
 				current_simulation_costs[utilization_class] = float('inf')
 

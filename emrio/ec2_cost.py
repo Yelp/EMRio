@@ -106,21 +106,26 @@ class EC2Info(object):
 			empty_logged_hours[utilization_class] = {}
 		return empty_logged_hours
 
-	def init_reserve_counts(self):
+	def init_reserve_counts(self, pool, instance_name):
 		"""initializes counts for reserve utilization classes.
 
 		The main use of this is to count the total instances bought for
-		a certain utilization_classization. The assumption is that this is calculating
+		a certain utilization_class. The assumption is that this is calculating
 		for a single instance_type, so that info doesn't need recording.
 
 		Returns:
-			A zero count of each utilization_classization type, like so:
-			reserve_counts = { utilization_classIZATION_NAME: 0}
+			the current counts of the pool, could be 0
 		"""
 		reserve_counts = {}
 		for utilization_class in self.RESERVE_PRIORITIES:
-			reserve_counts[utilization_class] = 0
+			reserve_counts[utilization_class] = pool[utilization_class][instance_name]
 		return reserve_counts
+
+	def init_reserve_costs(self):
+		reserve_costs = {}
+		for utilization_class in self.RESERVE_PRIORITIES:
+			reserve_costs[utilization_class] = 0
+		return reserve_costs
 
 	@staticmethod
 	def instance_types_in_pool(pool):
@@ -179,9 +184,9 @@ class EC2Info(object):
 		return colors
 
 	@staticmethod
-	def zero_instance_types(job_flows, pool):
-		"""Use this function to 0 the instance pool
-		with all the keys used in the job flows.
+	def fill_instance_types(job_flows, pool):
+		"""Use this function to fill the instance pool
+		with all the instance types used in the job flows.
 
 		example: if the job_flows has m1.small, and m1.large
 		and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
@@ -206,5 +211,5 @@ class EC2Info(object):
 			for instance in job.get('instancegroups'):
 				instance_type = instance.get('instancetype')
 				for utilization_class in pool.keys():
-					pool[utilization_class][instance_type] = 0
+					pool[utilization_class][instance_type] = pool[utilization_class][instance_type]
 

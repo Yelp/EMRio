@@ -5,13 +5,12 @@ Elastic MapReduce instance optimizer
 
 Introduction
 ------------
-Elastic MapReduce is a service provided by Amazon that makes it pretty easy to use MapReduce. EMR jobs run on machines called EC2 instances. They come in many different flavors from heavy memory usage to heavy CPU usage jobs. When businesses start using EMR, they use these services as a pay-as-you-go service, which is nice. After some time though, the amount of instances you use can become fairly stable though. If you utilize enough instances over time, it might make sense to switch from the pay-as-you-go service, or On-Demand service, to a pay-upfront service, or Reserved Instances service. 
+Elastic MapReduce is a service provided by Amazon that makes it easy to use MapReduce. EMR run on machines called EC2 instances. They come in many different flavors from heavy memory usage to heavy CPU usage. When businesses start using EMR, they use these services as a pay-as-you-go service. After some time, the amount of instances you use can become stable. If you utilize enough instances over time, it might make sense to switch from the pay-as-you-go service, or On-Demand service, to a pay-upfront service, or Reserved Instances service. 
 
-Reserved Instances work by paying an upfront price and then paying less hourly cost than the On-Demand service. You buy a Reserved Instance for a year or three years, then you have to renew it after that term is up. They also come in three different types: Heavy, Medium and Light utilization. These utilization classes offer more diverse options based on how much you use the EC2 machines. The question is though, how many instances should you buy and of what utilization class? This is the question EMRio tries to answer! 
-
+How Reserved Instances work can be read [here](http://aws.amazon.com/ec2/reserved-instances/). If you think that switching to reserved instances is a good plan, but don't know how many to buy, that's what EMRio is for!
 How It Works
 ------------
-EMRio first looks at your EMR history. That data has a two month limit. It then acts as if the job flow was reoccurring for a year -- in case you supply less than a years worth of data, it has to estimate a year's worth of data for Reserved Instances to be worth the cost. It then simulates different configurations using the job flow history and will produce the best pool of instances to buy. 
+EMRio first looks at your EMR history. That data has a two month limit. It then acts as if the job flow was reoccurring for a year. It has to estimate a year's worth of data for Reserved Instances to be worth the cost. It then simulates different configurations using the job flow history and will produce the best pool of instances to buy. 
 
 Dependencies
 ------------
@@ -22,7 +21,7 @@ How to Run EMRio
 ----------------
 Once you have the dependencies installed, you need to set up your boto configuration file. Look at our boto config as an example.
 
-After that is setup, just run:
+After that is setup, cd into emrio and run:
 
 	python EMRio.py
 
@@ -47,3 +46,11 @@ Which will save the results in output.txt, and load them like so:
 	python EMRio.py --optimized=output.txt
 
 If you want to see all the commands, try --help.
+
+Another standalone tool that EMRio provides it our usage predictor module. It will look at your billing history and uses linear regression to plot future usage hours. As long as the regression line isn't negative, you can be secure knowing that your reserved instances will be utilized the rest of the year.
+
+To run this tool, just compile your CSV biling history into a single file. After that, run:
+
+	python usage_predictor.py -f CSV_FILE_NAME
+
+It should produce a graph of the CSV history and plot the linear regression line and remove billing outliers as well.

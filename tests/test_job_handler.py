@@ -7,6 +7,8 @@ import pytz
 from emrio.job_handler import no_date_filter, range_date_filter
 from emrio.ec2_cost import EC2Info
 from test_prices import COST, RESERVE_PRIORITIES
+from emrio.config import TIMEZONE
+
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 BASETIME = datetime.datetime(2012, 5, 20)
@@ -56,7 +58,7 @@ class TestJobHandlerFunctions(TestCase):
 		outside_date = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB, start_time=basetime)
 		min_date = "2012/05/21"
 		min_date_datetime = datetime.datetime(2012, 5, 21)
-		min_date_datetime = min_date_datetime.replace(tzinfo=pytz.utc)
+		min_date_datetime = min_date_datetime.replace(tzinfo=TIMEZONE)
 		normal_date = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB, start_time=min_date_datetime)
 		job_flows_after = [normal_date]
 		job_flows = [outside_date, normal_date]

@@ -47,6 +47,53 @@ def create_test_instancegroup(instance_name, count):
 
 
 class TestOptimizeFunctions(TestCase):
+
+	def test_upgraded_pool(self):
+		"""Makes sure that if a person already has instances
+		purchased, that any upgraded pools will take that into
+		account.
+
+		In this example, the job pool should output 50 instances to
+		HIGH UTILIZATION but since 50 instances of medium were already
+		purchased, we can't upgrade to HIGH UTILIZATION. So the end
+		result should be 0 HIGH UTILIZATION, and 50 MEDIUM_UTILIZATION.
+		"""
+		current_jobs = create_parallel_jobs(JOB_AMOUNT)
+		current_pool = EC2.init_empty_reserve_pool()
+		current_pool[MEDIUM_UTIL][INSTANCE_NAME] = JOB_AMOUNT * BASE_INSTANCES
+
+		heavy_util = EC2.init_empty_reserve_pool()[HEAVY_UTIL]
+		heavy_util[INSTANCE_NAME] = 0
+		medium_util = {INSTANCE_NAME: len(current_jobs) * BASE_INSTANCES}
+
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run(
+				optimized_pool=current_pool)
+
+		self.assertEquals(optimized[HEAVY_UTIL], heavy_util)
+		self.assertEquals(optimized[MEDIUM_UTIL], medium_util)
+
+	def test_downgraded_pool(self):
+		"""This is the opposite of upgraded. If we have 50 heavy util
+		and the suggested jobs should be 50 medium util with the new
+		optimized pool, then don't suggest medium util, but keep heavy.
+		"""
+		end_time = BASETIME + MEDIUM_INTERVAL
+		current_jobs = create_parallel_jobs(JOB_AMOUNT, end_time=end_time)
+		current_pool = EC2.init_empty_reserve_pool()
+		current_pool[HEAVY_UTIL][INSTANCE_NAME] = JOB_AMOUNT * BASE_INSTANCES
+
+		medium_util = EC2.init_empty_reserve_pool()[HEAVY_UTIL]
+		medium_util[INSTANCE_NAME] = 0
+		heavy_util = {INSTANCE_NAME: len(current_jobs) * BASE_INSTANCES}
+
+		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run(
+				optimized_pool=current_pool)
+
+		self.assertEquals(optimized[HEAVY_UTIL], heavy_util)
+		self.assertEquals(optimized[MEDIUM_UTIL], medium_util)
+
+
+
 	def test_heavy_util(self):
 		"""This should just create a set of JOB_AMOUNT and then all
 		will be assigned to heavy_util since default interval for jobs

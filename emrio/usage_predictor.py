@@ -1,11 +1,14 @@
-"""Usage Predictor is a separate tool to look at past usage and predict
-the future usage. It does so by attempting to find a linear regression
-curve and then looking further along the curve to find the future hour
-use. It creates a graph of what it is doing so that way a person can
-make sure that the points that the graph is using is valid or not.
-By valid, I mean there is the chance that billing can be erratic and so
-use of this tool would be limited if the graph shows erratic points that
-it used for the linear regression.
+"""Usage Predictor is a separate tool to look at past billing info and predict
+the future usage.
+
+This is a separate tool that isn't being used in EMRio at this time. The
+decision to keep it separate is mostly because billing data is easily corrupted
+by any runaway job for a given month. Though we do remove outliers, the data is
+sometimes sporatic and so not very useful.
+
+This tool will graph the linear regression line for monthly billing and show
+future points of data so that you can see how many hours might be used in the
+future for instances to get a more accurate picture of future yearly usage.
 """
 
 import csv
@@ -35,12 +38,16 @@ def predict_future_billing_multiplier(file_name, current_date, future_time,
 	""" This function is used to pull data from a CSV file and
 	then use that usage data to predict future usage hours.
 
-	The current_date is used to have a base time that we want to get
-	the usage hours for. The future time is the time we are trying to
-	predict at.
+	Args:
+		current_date: This will be used as the base time for hours used
+		
+		future_time: The time in the future we want the hours for.
 
-	The return result will be a multiplier that you multiply the amount of
-	hours by for each instance type to get to that future date hour usage.
+		id: Account id that we are calculating the hours for.
+
+	Returns:
+		multiplier: The coefficient to multiply all the hours by for all
+	instance types to get to the future date hour usage.
 	"""
 
 	billing_info = parse_billing_csv(file_name)
@@ -52,13 +59,13 @@ def predict_future_billing_multiplier(file_name, current_date, future_time,
 	if id in different_bills:
 		types = filter_bills(different_bills[id])
 		if len(types.keys()) != 0:
-			predict_future(0, 0, types)
-			multiplier = predict_future((current_date + future_time),
+			multiplier = predict_future_multiplier_single(
+						(current_date + future_time),
 						different_bills[id])
 	return multiplier
 
 
-def predict_future(current_date, future_date, types):
+def predict_future_multiplier_single(current_date, future_date, types):
 	"""Uses linear regression to find a multiplier for future dates.
 
 	In order to properly buy reserved instances in the future, we need
@@ -325,5 +332,6 @@ def graph_bills(types, id):
 		ax.set_xlabel("Monthly bill dates")
 		ax.set_ylabel("Hours Used Overall")
 		fig.autofmt_xdate()
+
 if __name__ == '__main__':
 	main(sys.argv[1:])

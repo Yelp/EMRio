@@ -114,7 +114,10 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 	if optimized_filename:
 		pool = read_optimal_instances(optimized_filename)
 	else:
-		pool = Optimizer(job_flows, EC2).run()
+
+		owned_reserved_instances = get_owned_reserved_instances()
+		pool = Optimizer(job_flows, EC2).run(
+				optimized_pool=owned_reserved_instances)
 
 	if save_filename:
 		write_optimal_instances(save_filename, pool)
