@@ -19,7 +19,7 @@ Dependencies
 	-matplotlib
 How to Run EMRio
 ----------------
-Once you have the dependencies installed, you need to set up your boto configuration file. Look at our boto config as an example.
+Once you have the dependencies installed, you need to set up your boto configuration file. Look at our boto config as an example. Once you fill in the AWS key information and region information, copy it to either /etc/boto.conf or ~/.boto
 
 After that is setup, cd into emrio and run:
 
@@ -47,10 +47,3 @@ Which will save the results in output.txt, and load them like so:
 
 If you want to see all the commands, try --help.
 
-Another standalone tool that EMRio provides it our usage predictor module. It will look at your billing history and uses linear regression to plot future usage hours. As long as the regression line isn't negative, you can be secure knowing that your reserved instances will be utilized the rest of the year.
-
-To run this tool, just compile your CSV biling history into a single file. After that, run:
-
-	python usage_predictor.py -f CSV_FILE_NAME
-
-It should produce a graph of the CSV history and plot the linear regression line and remove billing outliers as well.
