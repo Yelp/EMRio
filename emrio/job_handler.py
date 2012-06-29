@@ -8,7 +8,7 @@ input from the user.
 
 import datetime
 import json
-import pytz
+from config import TIMEZONE
 
 import boto.exception
 from boto.emr.connection import EmrConnection
@@ -92,10 +92,10 @@ def range_date_filter(job_flows, min_days, max_days):
 	filtered_job_flows = []
 	if min_days:
 		min_days = datetime.datetime.strptime(min_days, "%Y/%m/%d") 
-		min_days = min_days.replace(tzinfo=pytz.utc)
+		min_days = min_days.replace(tzinfo=TIMEZONE)
 	if max_days:
 		max_days = datetime.datetime.strptime(max_days, "%Y/%m/%d") 
-		max_days = max_days.replace(tzinfo=pytz.utc)
+		max_days = max_days.replace(tzinfo=TIMEZONE)
 	for job  in job_flows:
 		job_within_range = True
 		if min_days and job['startdatetime'] < min_days:
@@ -118,7 +118,7 @@ def parse_date(str_date):
 	Returns: datetime.datetime object in UTC tz.	
 	"""
 	current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
-	current_date = current_date.replace(tzinfo=pytz.utc)
+	current_date = current_date.replace(tzinfo=TIMEZONE)
 	return current_date
 
 

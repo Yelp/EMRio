@@ -73,9 +73,9 @@ def graph_over_time(info_over_time, hours_line, job_flows,
 
 	for instance_type in EC2.instance_types_in_pool(info_over_time):
 		# Locators / Formatters to pretty up the graph.
-		hours = mdates.HourLocator(byhour=None, interval=1, tz=TIMEZONE)
-		days = mdates.DayLocator(bymonthday=None, interval=1, tz=TIMEZONE)
-		formatter = mdates.DateFormatter("%m/%d ", TIMEZONE)
+		hours = mdates.HourLocator(byhour=None, interval=1)
+		days = mdates.DayLocator(bymonthday=None, interval=1)
+		formatter = mdates.DateFormatter("%m/%d ")
 
 		fig = plt.figure()
 		fig.suptitle(instance_type)

@@ -168,7 +168,7 @@ class Simulator:
 			observer.update(time, event_type, job, pool_used)
 
 		for observer in self.log_observers:
-			observer.update(time, event_type, job, pool_used)
+			observer.update(time, event_type, job, logged_hours)
 
 	def log_hours(self, logged_hours, jobs, job_id):
 		"""Will add the hours of the specified job running to the logs.
