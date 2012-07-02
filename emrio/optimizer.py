@@ -16,24 +16,27 @@ class Optimizer(object):
 			max_time = max(job.get('enddatetime') for job in job_flows)
 			self.job_flows_interval = max_time - min_time
 
-	def run(self, optimized_pool=None):
-		"""Take all the max_instance counts, then use that to combinatorically
+	def run(self, pre_existing_pool=None):
+		"""Take all the max_instance counts, then use that to hill climb to
 		find the most cost efficient instance cost
 
 		Returns: 
 			optimal_pool: dict of the best pool of instances to be used.
 		"""
-		if optimized_pool is None:
+		if pre_existing_pool is None:
 			optimized_pool = self.EC2.init_empty_reserve_pool()
+		else:
+			optimized_pool = pre_existing_pool
+
 		# Zero-ing the instances just makes it so the optimized pool
 		# knows all the instance_types the job flows use beforehand.
 		self.EC2.fill_instance_types(self.job_flows, optimized_pool)
 		for instance in self.EC2.instance_types_in_pool(optimized_pool):
 			logging.debug("Finding optimal instances for %s", instance)
-			self.brute_force_optimize(instance, optimized_pool)
+			self.optimize_reserve_pool(instance, optimized_pool)
 		return optimized_pool
 
-	def brute_force_optimize(self, instance_type, pool):
+	def optimize_reserve_pool(self, instance_type, pool):
 		"""The brute force approach will take a single instance type and optimize the
 		instance pool for it. By using the job_flows in simulations.
 
@@ -52,12 +55,10 @@ class Optimizer(object):
 		current_cost = current_min_cost
 
 		while previous_cost >= current_cost:
-			current_simulation_costs = self.EC2.init_reserve_costs()
-			for utilization_class in current_simulation_costs:
-				current_simulation_costs[utilization_class] = float('inf')
+			current_simulation_costs = self.EC2.init_reserve_costs(float('inf'))
 
 			# Add a single instance to each utilization type, and record the costs.
-			# whichever is the minimum, and choose it.
+			# Choose the minimum cost utilization type.
 			for utilization_class in pool:
 				# Reset the min instances to the best values.
 				for current_util in pool:
@@ -66,9 +67,8 @@ class Optimizer(object):
 						current_min_instances[utilization_class] + 1)
 				logged_hours = simulator.run()
 				convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
-				current_simulation_costs[utilization_class] = self.EC2.calculate_cost(
-					logged_hours,
-					pool)
+				current_simulation_costs[utilization_class] = (
+					self.EC2.calculate_cost(logged_hours,pool))
 
 			previous_cost = current_cost
 			current_cost = min(current_simulation_costs.values())
@@ -80,7 +80,7 @@ class Optimizer(object):
 			# Record the new cost, then check to see if adding one instance is better
 			# If it is not, then break from the loop, since adding more will be worst.
 			if min(current_cost, current_min_cost) != current_min_cost or (
-			current_cost == current_min_cost):
+				current_cost == current_min_cost):
 
 				current_min_cost = current_cost
 				current_min_instances[min_util_level] += 1
@@ -117,10 +117,8 @@ def convert_to_yearly_estimated_hours(logged_hours, interval):
 	Returns: nothing
 	"""
 	days_per_year = 365.0
-	conversion_rate = 365.0
-	if interval.days is not 0:
-		conversion_rate = (days_per_year /
-			(interval.days + interval.seconds / (24.0 * 60 * 60)))
+	conversion_rate = (days_per_year /
+		(interval.days + interval.seconds / (24.0 * 60 * 60)))
 	for utilization_class in logged_hours:
 		for machine in logged_hours[utilization_class]:
 			logged_hours[utilization_class][machine] = (

@@ -5,23 +5,20 @@ from unittest import TestCase
 
 # Setup a mock EC2 since west coast can be changed in the future.
 from emrio.simulate_jobs import Simulator
-from emrio.ec2_cost import EC2Info
-from test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
+from test_prices import HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL
 from test_prices import DEMAND
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)
-
-BASETIME = datetime.datetime(2012, 5, 20, 5)
-INCREMENT = datetime.timedelta(0, 3600)
-INTERVAL = datetime.timedelta(0, 3600)
-CURRENT_TIME = BASETIME
-INSTANCE_NAME = 'm1.small'
-BASE_INSTANCES = 20
-JOB = 'job1'
+from test_mockups import EC2
+from test_mockups import INSTANCE_NAME
+from test_mockups import INSTANCE_COUNT
+from test_mockups import JOB
+BASE_TIME = datetime.datetime(2012, 5, 20, 5)
+INCREMENT = datetime.timedelta(0, 3000)
+INTERVAL = datetime.timedelta(0, 3000)
 EMPTY_POOL = EC2.init_empty_reserve_pool()
 EMPTY_LOG = EC2.init_empty_all_instance_types()
 EMPTY_JOB_FLOWS = []
 HEAVY_POOL = {
-	HEAVY_UTIL: {INSTANCE_NAME: BASE_INSTANCES},
+	HEAVY_UTIL: {INSTANCE_NAME: INSTANCE_COUNT},
 	MEDIUM_UTIL: {},
 	LIGHT_UTIL: {}
 }
@@ -29,14 +26,14 @@ HEAVY_POOL = {
 JOBS_RUNNING = {
 	JOB: {
 		HEAVY_UTIL: {
-			INSTANCE_NAME: BASE_INSTANCES
+			INSTANCE_NAME: INSTANCE_COUNT
 		}
 	}
 
 }
 
-def create_test_job(instance_name, count, j_id, start_time=CURRENT_TIME,
-	end_time=(CURRENT_TIME + INCREMENT)):
+def create_test_job(instance_name, count, j_id, start_time=BASE_TIME,
+	end_time=(BASE_TIME + INCREMENT)):
 	"""Creates a test job dictionary that is similar to the structure of
 	a normal job but with a lot less irrelevant data
 	"""
@@ -54,7 +51,7 @@ class TestOptimizeFunctions(TestCase):
 		"""Will add a single job and test to make sure that the job stash is
 		correct after the function runs.
 		"""
-		job = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB)
+		job = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, JOB)
 		jobs_running = {}
 		pool = HEAVY_POOL
 		pool_used = copy.deepcopy(EMPTY_POOL)
@@ -67,7 +64,7 @@ class TestOptimizeFunctions(TestCase):
 	def test_remove_job(self):
 		"""Do the exact opposite as test_add_job."""
 
-		job = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB)
+		job = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, JOB)
 		jobs_running = copy.deepcopy(JOBS_RUNNING)
 		jobs_running_after = {}
 		pool_used = copy.deepcopy(HEAVY_POOL)
@@ -86,17 +83,17 @@ class TestOptimizeFunctions(TestCase):
 		jobs_running = {
 			JOB: {
 				MEDIUM_UTIL: {
-					INSTANCE_NAME: BASE_INSTANCES
+					INSTANCE_NAME: INSTANCE_COUNT
 				}
 			}
 		}
 		pool = HEAVY_POOL
 		pool_used = copy.deepcopy(EMPTY_POOL)
-		job = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB)
+		job = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, JOB)
 		Simulator(EMPTY_JOB_FLOWS, pool).rearrange_instances(jobs_running,
 			pool_used, job)
 		HEAVY_UTIL_USED = {
-			INSTANCE_NAME: BASE_INSTANCES
+			INSTANCE_NAME: INSTANCE_COUNT
 		}
 		self.assertEqual(pool_used[HEAVY_UTIL], HEAVY_UTIL_USED)
 		self.assertEqual(JOBS_RUNNING, jobs_running)
@@ -114,15 +111,15 @@ class TestOptimizeFunctions(TestCase):
 		the shared pool should only be able to handle one of the three
 		jobs, so the other two job times will be put in demand.
 		"""
-		test_job1 = create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j1')
-		test_job2 = create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j2')
-		test_job3 = create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j3')
+		test_job1 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, 'j1')
+		test_job2 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, 'j2')
+		test_job3 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT, 'j3')
 		current_jobs = [test_job1, test_job2, test_job3]
 
 		# Jobs done in parallel should be instance pool in reserved and
 		# anything leftover will be in demand.
-		reserve_log = {INSTANCE_NAME: BASE_INSTANCES}
-		demand_log = {INSTANCE_NAME: BASE_INSTANCES * 2}
+		reserve_log = {INSTANCE_NAME: INSTANCE_COUNT}
+		demand_log = {INSTANCE_NAME: INSTANCE_COUNT * 2}
 		log = Simulator(current_jobs, HEAVY_POOL).run()
 		self.assertEqual(log[HEAVY_UTIL], reserve_log)
 		self.assertEqual(log[DEMAND], demand_log)
@@ -133,22 +130,22 @@ class TestOptimizeFunctions(TestCase):
 		will take all jobs. Since all the jobs can fit in the pool,
 		there should only be reserved hourly useage.
 		"""
-		current_time = BASETIME
+		current_time = BASE_TIME
 
-		test_job1 = create_test_job(INSTANCE_NAME, BASE_INSTANCES,
+		test_job1 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT,
 			'j1', current_time, (current_time + INTERVAL))
 		current_time += INCREMENT
-		test_job2 = create_test_job(INSTANCE_NAME, BASE_INSTANCES,
+		test_job2 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT,
 			'j2', current_time, (current_time + INTERVAL))
 		current_time += INCREMENT
-		test_job3 = create_test_job(INSTANCE_NAME, BASE_INSTANCES,
+		test_job3 = create_test_job(INSTANCE_NAME, INSTANCE_COUNT,
 			'j3', current_time, (current_time + INTERVAL))
 		current_time += INCREMENT
 		current_jobs = [test_job1, test_job2, test_job3]
 
 		# Jobs done in parallel should be instance pool in reserved and
 		# anything leftover will be in demand.
-		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
+		reserve_log = {INSTANCE_NAME: INSTANCE_COUNT * len(current_jobs)}
 		demand_log = {}
 		log = Simulator(current_jobs, HEAVY_POOL).run()
 		self.assertEqual(log[HEAVY_UTIL], reserve_log)
@@ -162,7 +159,7 @@ class TestOptimizeFunctions(TestCase):
 
 	def test_empty_pool(self):
 		"""An empty pool (pool = {}) is malformed and should raise an error."""
-		current_jobs = [create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j1')]
+		current_jobs = [create_test_job(INSTANCE_NAME, INSTANCE_COUNT, 'j1')]
 		try:
 			Simulator(current_jobs, {}).run()
 			self.assertTrue(False)  # This shouldn't execute.

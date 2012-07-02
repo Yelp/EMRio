@@ -9,18 +9,22 @@ from emrio import ec2_cost
 from test_prices import *
 
 EC2 = ec2_cost.EC2Info(COST, RESERVE_PRIORITIES)
+
 BASETIME = datetime.datetime(2012, 5, 20, 5)
+
+LIGHT_INTERVAL = datetime.timedelta(0, 30000)
 MEDIUM_INTERVAL = datetime.timedelta(0, 50000)
-LIGHT_DAY_INTERVAL = datetime.timedelta(0, 30000)
 HEAVY_INTERVAL = datetime.timedelta(0, 80000)
 DEMAND_INTERVAL = datetime.timedelta(0, 2000)
-CURRENT_TIME = BASETIME
+
 INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 10
 JOB_AMOUNT = 5
 DAY_INCREMENT = datetime.timedelta(1, 0)
+
 EMPTY_POOL = EC2.init_empty_reserve_pool()
 EMPTY_LOG = EC2.init_empty_all_instance_types()
+
 DEFAULT_LOG = copy.deepcopy(EMPTY_LOG)
 DEFAULT_LOG[MEDIUM_UTIL][INSTANCE_NAME] = 100
 
@@ -67,7 +71,7 @@ class TestOptimizeFunctions(TestCase):
 		medium_util = {INSTANCE_NAME: len(current_jobs) * BASE_INSTANCES}
 
 		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run(
-				optimized_pool=current_pool)
+				pre_existing_pool=current_pool)
 
 		self.assertEquals(optimized[HEAVY_UTIL], heavy_util)
 		self.assertEquals(optimized[MEDIUM_UTIL], medium_util)
@@ -87,7 +91,7 @@ class TestOptimizeFunctions(TestCase):
 		heavy_util = {INSTANCE_NAME: len(current_jobs) * BASE_INSTANCES}
 
 		optimized = Optimizer(current_jobs, EC2, DAY_INCREMENT).run(
-				optimized_pool=current_pool)
+				pre_existing_pool=current_pool)
 
 		self.assertEquals(optimized[HEAVY_UTIL], heavy_util)
 		self.assertEquals(optimized[MEDIUM_UTIL], medium_util)
@@ -118,7 +122,7 @@ class TestOptimizeFunctions(TestCase):
 
 	def test_light_util(self):
 		"""Same as heavy_util but with 30 percent of the day."""
-		end_time = BASETIME + LIGHT_DAY_INTERVAL
+		end_time = BASETIME + LIGHT_INTERVAL
 		current_jobs = create_parallel_jobs(JOB_AMOUNT, end_time=end_time)
 
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
@@ -162,7 +166,7 @@ class TestOptimizeFunctions(TestCase):
 		should make it so that all instances are chosen of the interval amount.
 		"""
 		end_time = BASETIME + MEDIUM_INTERVAL
-		end_time_light = BASETIME + LIGHT_DAY_INTERVAL
+		end_time_light = BASETIME + LIGHT_INTERVAL
 		current_jobs = create_parallel_jobs(JOB_AMOUNT)
 		current_jobs.extend(create_parallel_jobs(JOB_AMOUNT, end_time=end_time,
 												start_count=JOB_AMOUNT))

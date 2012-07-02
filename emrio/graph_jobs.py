@@ -58,9 +58,11 @@ def record_log_data(job_flows, pool):
 	return  logged_hours_per_hour, event_times
 
 
-def graph_over_time(info_over_time, hours_line, job_flows,
-	xlabel='Time job ran (in hours)',
-	ylabel='Instances run'):
+def graph_over_time(info_over_time, 
+			hours_line, 
+			job_flows,
+			xlabel='Time job ran (in hours)',
+			ylabel='Instances run'):
 	"""Given some sort of data that changes over time, graph the
 	data usage using this"""
 

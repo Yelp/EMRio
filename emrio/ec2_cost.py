@@ -13,7 +13,7 @@ UTILIZATION_LEVEL is the name of the utilization that Amazon uses:
 INSTANCE_NAMES is the name that amazon uses for their instance types.
 INSTANCE_COUNT is how many instances are 'bought' for that simulation.
 
-Logs: are pools that count the amount of hours that instances run for,
+logged_hours: are pools that count the amount of hours that instances run for,
 	so instead of instance_count, instance_hours is stored.
 
 """
@@ -23,8 +23,8 @@ from collections import defaultdict
 
 class EC2Info(object):
 	"""This class is used to store EC2 info like costs from the config
-	files a person supplies. All the functions in it use that config to build
-	pools or calculate the costs of instances.
+	file. All the functions in it use that config to build pools or
+	calculate the costs of instances.
 	"""
 
 	def __init__(self, cost, reserve_priorities):
@@ -121,10 +121,21 @@ class EC2Info(object):
 			reserve_counts[utilization_class] = pool[utilization_class][instance_name]
 		return reserve_counts
 
-	def init_reserve_costs(self):
+	def init_reserve_costs(self, init_value):
+		"""Initializes the amount of reserve utility instances there
+		based on the init value provided.
+
+		Args:
+			init_value: Amount of starting instances to fill each
+				utilization class.
+
+		Returns:
+			Dict of utilization types each initialized to init_value
+		"""
+
 		reserve_costs = {}
 		for utilization_class in self.RESERVE_PRIORITIES:
-			reserve_costs[utilization_class] = 0
+			reserve_costs[utilization_class] = init_value
 		return reserve_costs
 
 	@staticmethod

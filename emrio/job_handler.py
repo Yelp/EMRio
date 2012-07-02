@@ -8,6 +8,7 @@ input from the user.
 
 import datetime
 import json
+import logging
 from config import TIMEZONE
 
 import boto.exception
@@ -26,23 +27,17 @@ def get_job_flows(options):
 	"""
 	job_flows = []
 	if(options.file_inputs):
-		job_flows = handle_job_flows_file(options.file_inputs)
+		job_flows = load_job_flows_from_file(options.file_inputs)
 	else:
-		job_flows = get_job_flows_from_amazon(options)
+		job_flows = load_job_flows_from_amazon(options)
 	
 	job_flows = no_date_filter(job_flows)
 	job_flows = convert_dates(job_flows)
 	job_flows = range_date_filter(job_flows, options.min_days, options.max_days)
-
-	def sort_by_job_times(job1, job2):
-		"""Sorting comparator for job_flow objects"""
-		date1 = job1.get('startdatetime')
-		date2 = job2.get('startdatetime')
-		return_time = -1 if date1 < date2 else 1
-		return return_time
-
+	
 	# sort job flows before running simulations.
-	job_flows = sorted(job_flows, cmp=sort_by_job_times)
+	by_startdatetime = lambda j: j.get('startdatetime')
+	job_flows = sorted(job_flows, key=by_startdatetime)
 	return job_flows
 
 
@@ -122,7 +117,7 @@ def parse_date(str_date):
 	return current_date
 
 
-def handle_job_flows_file(filename):
+def load_job_flows_from_file(filename):
 	"""Loads job flows from a file specified by the filename. Will
 	try comma-separated JSON objects then per-line objects before failing.
 	"""
@@ -142,7 +137,7 @@ def handle_job_flows_file(filename):
 	return job_flows
 
 
-def get_job_flows_from_amazon(options):
+def load_job_flows_from_amazon(options):
 	"""Gets all the job flows from amazon and converts them into
 	a dict for compatability with loading from a file
 	"""
@@ -160,16 +155,20 @@ def get_job_flows_from_amazon(options):
 	return job_flows
 
 
-#### Code ported from mrjob.tools.emr.audit_usage #####
 def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	"""Get relevant job flow information from EMR.
+	
+	Args:
+		conf_path: is a string that is either None or has an alternate
+			path to load the configuration file.
 
-	:param str conf_path: Alternate path to read :py:mod:`mrjob.conf` from, or
-						``False`` to ignore all config files.
-	:param float max_days_ago: If set, don't fetch job flows created longer
-								than this many days ago.
-	:param now: the current UTC time, as a :py:class:`datetime.datetime`.
-				Defaults to the current time.
+		max_days_ago: A float where if set, dont fetch job flows created
+			longer than this many days ago.
+		
+		now: the current UTC time as a datetime.datetime object.
+			defaults to the current time.
+	Returns:
+		job_flows: A list of boto job flow objects.
 	"""
 	if now is None:
 		now = datetime.datetime.utcnow()
@@ -192,14 +191,17 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 	This is a way of getting around the limits of the API, both on number
 	of job flows returned, and how far back in time we can go.
 
-	:type states: list
-	:param states: A list of strings with job flow states wanted
-	:type jobflow_ids: list
-	:param jobflow_ids: A list of job flow IDs
-	:type created_after: datetime
-	:param created_after: Bound on job flow creation time
-	:type created_before: datetime
-	:param created_before: Bound on job flow creation time
+	Args:
+		states: A list of strings with job flow states wanted.
+
+		jobflow_ids: A list of job flow IDs for jobs you want.
+
+		created_after: a datetime object to limit job flows that are
+			created after this date.
+		
+		created_before: same as created_after except before
+	Returns:
+		job_flows: A list of job flow boto objects
 	"""
 	all_job_flows = []
 	ids_seen = set()
@@ -210,14 +212,14 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 	while True:
 		if created_before and created_after and created_before < created_after:
 			break
-
+		logging.disabled = True
 		try:
 			results = emr_conn.describe_jobflows(
 				states=states, jobflow_ids=jobflow_ids,
 				created_after=created_after, created_before=created_before)
 		except boto.exception.BotoServerError, ex:
 			if 'ValidationError' in ex.body:
-
+				logging.disabled = False
 				break
 			else:
 				raise

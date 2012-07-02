@@ -11,17 +11,16 @@ from emrio.config import TIMEZONE
 
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
-BASETIME = datetime.datetime(2012, 5, 20)
+BASE_TIME = datetime.datetime(2012, 5, 20)
 INCREMENT = datetime.timedelta(0, 3600)
 INTERVAL = datetime.timedelta(0, 3600)
-CURRENT_TIME = BASETIME
 INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 20
 JOB = 'job1'
 
 
-def create_test_job(instance_name, count, j_id, start_time=CURRENT_TIME,
-	end_time=(CURRENT_TIME + INCREMENT)):
+def create_test_job(instance_name, count, j_id, start_time=BASE_TIME,
+	end_time=(BASE_TIME + INCREMENT)):
 	"""Creates a test job dictionary that is similar to the structure of
 	a normal job but with a lot less irrelevant data
 	"""
@@ -54,7 +53,7 @@ class TestJobHandlerFunctions(TestCase):
 		"""This function specifies a min date and one of the jobs is out of the date range
 		while the other isn't, so only one job should remain in the job_flows after
 		"""
-		basetime = BASETIME.replace(tzinfo=pytz.utc)
+		basetime = BASE_TIME.replace(tzinfo=pytz.utc)
 		outside_date = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB, start_time=basetime)
 		min_date = "2012/05/21"
 		min_date_datetime = datetime.datetime(2012, 5, 21)

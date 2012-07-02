@@ -32,7 +32,7 @@ def main(args):
 	logging.basicConfig(level=logging.INFO)
 	if options.verbose:
 		logging.basicConfig(level=logging.DEBUG)
-	logging.debug('Getting job flows...')
+	logging.info('Getting job flows...')
 	job_flows = get_job_flows(options)
 
 	logging.info('Finding optimal instance pool (this may take a minute or two)...')
@@ -117,7 +117,7 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 
 		owned_reserved_instances = get_owned_reserved_instances()
 		pool = Optimizer(job_flows, EC2).run(
-				optimized_pool=owned_reserved_instances)
+				pre_existing_pool=owned_reserved_instances)
 
 	if save_filename:
 		write_optimal_instances(save_filename, pool)

@@ -1,4 +1,5 @@
-""" SIMULATE JOBS
+""" The Simulate Jobs module uses a job flow history and outputs a log of hours
+for each instance type and utilization class used.
 
 This module is used to simulate job flows over a period of time and give back
 the hours used for each instance type by the job flows. You also pass in a
@@ -31,9 +32,9 @@ import datetime
 from config import EC2
 from heapq import heapify, heappop
 
-# Made END < START so the heap can use secondary sorting
-# if the dates are the same (almost no chance, but possible)
-# so don't edit the numbers!
+# If there are events happening at the same time in the priority queue, START
+# needs to occur later than END, so the const numbers are priority encoded
+# where end has the highest precedence, then LOG and finally START.
 START = 2
 LOG = 1
 END = 0
@@ -68,8 +69,8 @@ class Simulator:
 			log: A dict that holds the cumulative hours ran on all instance types and
 				utilization levels.
 		"""
-		# Setup stage. Setup the queue, state variables and logger.
-		priority_queue = self.setup_priority_events()
+		# Setup the queue, state variables and logger.
+		job_event_timeline = self.setup_job_event_timeline()
 		logged_hours = EC2.init_empty_all_instance_types()
 		# The pool used is the amount of instances that are currently in
 		# use by the simulator. available instances = pool - used.
@@ -77,16 +78,15 @@ class Simulator:
 
 		jobs_running = {}
 
-		#####################################################
 		# Start simulating events.
-		###################################################
-		for time, event_type, job in [heappop(priority_queue)
-								for i in range(len(priority_queue))]:
+		for time, event_type, job in [heappop(job_event_timeline)
+					for i in range(len(job_event_timeline))]:
 			job_id = job.get('jobflowid')
+
 			# Logger is used for recording more information as the simulator runs
 			# by passing in a logger function, you can use closure to access other
 			# variables and log the information you want (example: graphs)
-			self.notify(time, event_type, job, logged_hours, pool_used)
+			self.notify_observers(time, event_type, job, logged_hours, pool_used)
 			if event_type is START:
 				self.allocate_job(jobs_running, pool_used, job)
 
@@ -101,10 +101,10 @@ class Simulator:
 				self.log_hours(logged_hours, jobs_running, job_id)
 				self.remove_job(jobs_running, pool_used, job)
 
-			self.notify(time, event_type, job, logged_hours, pool_used)
+			self.notify_observers(time, event_type, job, logged_hours, pool_used)
 		return logged_hours
 
-	def setup_priority_events(self):
+	def setup_job_event_timeline(self):
 		"""Sets up node events for the simulator.
 
 		Create a priority queue where the events are the
@@ -117,11 +117,12 @@ class Simulator:
 		this happens with only just START and END events.
 
 		Returns:
-			pq: a priority queue of event tuples: (TIME, EVENT_TYPE, job)
+			event_timeline: a priority queue of event tuples:
+				(TIME, EVENT_TYPE, job)
 				TIME -- datetime the event occurs at.
 				EVENT_TYPE -- START, LOG or END.
 		"""
-		priority_queue = []
+		job_event_timeline = []
 		for job in self.job_flows:
 			start_time = job.get('startdatetime')
 			hour_increment = start_time + datetime.timedelta(0, 3600)
@@ -130,17 +131,17 @@ class Simulator:
 			# This creates intermediate nodes for logging hours.
 			while hour_increment < end_time:
 				medium_node = (hour_increment, LOG, job)
-				priority_queue.append(medium_node)
+				job_event_timeline.append(medium_node)
 				hour_increment += datetime.timedelta(0, 3600)
 
 			# Create nodes and add them to the heap.
 			start_node = (start_time, START, job)
 			end_node = (end_time, END, job)
-			priority_queue.append(start_node)
-			priority_queue.append(end_node)
+			job_event_timeline.append(start_node)
+			job_event_timeline.append(end_node)
 
-		heapify(priority_queue)
-		return priority_queue
+		heapify(job_event_timeline)
+		return job_event_timeline
 
 	def attach_log_hours_observer(self, observer):
 		self.log_observers.append(observer)
@@ -148,9 +149,9 @@ class Simulator:
 	def attach_pool_use_observer(self, observer):
 		self.use_pool_observers.append(observer)
 
-	def notify(self, time, event_type, job, logged_hours, pool_used):
-		"""Do nothing, overwrite if you want richer
-		information from the simulator.
+	def notify_observers(self, time, event_type, job, logged_hours, pool_used):
+		"""Sends information to observers that are attached to the
+		simulator.
 		Args:
 			time: Time the event occurred at.
 
@@ -161,9 +162,8 @@ class Simulator:
 			logged_hours: The sum of the logged hours up to this point.
 
 			pool_used: The current instances and their types used at this point in time.
-
-		Returns: Nothing.
 		"""
+
 		for observer in self.use_pool_observers:
 			observer.update(time, event_type, job, pool_used)
 
@@ -202,7 +202,7 @@ class Simulator:
 		# If the job needs more instances than the pool has, choose have.
 		use_space = lambda need, have: need if need < have else have
 		jobs[job_id] = {}
-		for instance in job.get('instancegroups'):
+		for instance in job.get('instancegroups', []):
 			instance_type = instance.get('instancetype')
 			instances_needed = int(instance.get('instancerequestcount', 0))
 
@@ -240,8 +240,6 @@ class Simulator:
 			jobs: Removes the job from the currently running jobs.
 			pool_used: Removes instances that the job was using, so they are
 				now free.
-
-		Returns: None.
 		"""
 		job_id = job.get('jobflowid')
 
@@ -251,8 +249,7 @@ class Simulator:
 			for instance_type in jobs[job_id].get(utilization_class, None).keys():
 				pool_used[utilization_class][instance_type] = (
 						pool_used[utilization_class].get(instance_type, 0) -
-						jobs[job_id][utilization_class][instance_type]
-					)
+						jobs[job_id][utilization_class][instance_type])
 				if pool_used[utilization_class][instance_type] is 0:
 					del pool_used[utilization_class][instance_type]
 		del jobs[job_id]
@@ -274,8 +271,6 @@ class Simulator:
 		Mutates:
 			pool_used: May rearrange the instance usage if there is a better combination
 			jobs: rearranges job instances.
-
-		Returns: Nothing
 		"""
 		job_id = job.get('jobflowid')
 
