@@ -62,10 +62,11 @@ class EC2Info(object):
 			cost: Cost of the pool and hourly costs for each of the logged_hours.
 		"""
 		# Calculate the upfront cost of all the instances.
+		upfront_cost = 0.0
 		cost = 0.0
 		for utilization_class in pool:
 			for instance_type in pool[utilization_class]:
-				cost += (
+				upfront_cost += (
 					self.COST[utilization_class][instance_type]['upfront'] *
 					pool[utilization_class][instance_type])
 		# Hourly cost calculation
@@ -74,7 +75,8 @@ class EC2Info(object):
 				cost += (
 					self.COST[utilization_class][instance_type]['hourly'] *
 					logged_hours[utilization_class][instance_type])
-		return cost
+		cost += upfront_cost
+		return cost, upfront_cost
 
 	def init_empty_reserve_pool(self):
 		"""Creates an empty reserve pool.

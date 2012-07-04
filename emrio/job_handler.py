@@ -29,12 +29,13 @@ def get_job_flows(options):
 	if(options.file_inputs):
 		job_flows = load_job_flows_from_file(options.file_inputs)
 	else:
-		job_flows = load_job_flows_from_amazon(options)
-	
+		job_flows = load_job_flows_from_amazon(options.conf_path,
+			options.max_days_ago)
+
 	job_flows = no_date_filter(job_flows)
 	job_flows = convert_dates(job_flows)
 	job_flows = range_date_filter(job_flows, options.min_days, options.max_days)
-	
+
 	# sort job flows before running simulations.
 	by_startdatetime = lambda j: j.get('startdatetime')
 	job_flows = sorted(job_flows, key=by_startdatetime)
@@ -72,7 +73,7 @@ def no_date_filter(job_flows):
 	for job in job_flows:
 		if job.get('startdatetime') and job.get('enddatetime'):
 			filtered_job_flows.append(job)
-	
+
 	return filtered_job_flows
 
 
@@ -86,10 +87,10 @@ def range_date_filter(job_flows, min_days, max_days):
 
 	filtered_job_flows = []
 	if min_days:
-		min_days = datetime.datetime.strptime(min_days, "%Y/%m/%d") 
+		min_days = datetime.datetime.strptime(min_days, "%Y/%m/%d")
 		min_days = min_days.replace(tzinfo=TIMEZONE)
 	if max_days:
-		max_days = datetime.datetime.strptime(max_days, "%Y/%m/%d") 
+		max_days = datetime.datetime.strptime(max_days, "%Y/%m/%d")
 		max_days = max_days.replace(tzinfo=TIMEZONE)
 	for job  in job_flows:
 		job_within_range = True
@@ -106,11 +107,11 @@ def range_date_filter(job_flows, min_days, max_days):
 def parse_date(str_date):
 	"""Changes a string that conforms to iso8601 to a non-naive datetime
 	object.
-	
+
 	Args:
 		str_date: string in the iso8601 format.
 
-	Returns: datetime.datetime object in UTC tz.	
+	Returns: datetime.datetime object in UTC tz.
 	"""
 	current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
 	current_date = current_date.replace(tzinfo=TIMEZONE)
@@ -137,12 +138,12 @@ def load_job_flows_from_file(filename):
 	return job_flows
 
 
-def load_job_flows_from_amazon(options):
+def load_job_flows_from_amazon(conf_path, max_days_ago):
 	"""Gets all the job flows from amazon and converts them into
 	a dict for compatability with loading from a file
 	"""
 	now = datetime.datetime.utcnow()
-	job_flows = get_job_flow_objects(options.conf_path, options.max_days_ago, now=now)
+	job_flows = get_job_flow_objects(conf_path, max_days_ago, now=now)
 	dict_job_flows = []
 	for job in job_flows:
 		job_dict = job.__dict__
@@ -157,14 +158,14 @@ def load_job_flows_from_amazon(options):
 
 def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
 	"""Get relevant job flow information from EMR.
-	
+
 	Args:
 		conf_path: is a string that is either None or has an alternate
 			path to load the configuration file.
 
 		max_days_ago: A float where if set, dont fetch job flows created
 			longer than this many days ago.
-		
+
 		now: the current UTC time as a datetime.datetime object.
 			defaults to the current time.
 	Returns:
@@ -198,7 +199,7 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 
 		created_after: a datetime object to limit job flows that are
 			created after this date.
-		
+
 		created_before: same as created_after except before
 	Returns:
 		job_flows: A list of job flow boto objects
@@ -244,4 +245,3 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
 				created_before = datetime.utcnow()
 			created_before -= datetime.timedelta(weeks=2)
 	return all_job_flows
-

@@ -51,7 +51,7 @@ class Optimizer(object):
 		# Calculate the default cost first.
 		logged_hours = simulator.run()
 		convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
-		current_min_cost = self.EC2.calculate_cost(logged_hours, pool)
+		current_min_cost, _ = self.EC2.calculate_cost(logged_hours, pool)
 		current_cost = current_min_cost
 
 		while previous_cost >= current_cost:
@@ -67,8 +67,8 @@ class Optimizer(object):
 						current_min_instances[utilization_class] + 1)
 				logged_hours = simulator.run()
 				convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
-				current_simulation_costs[utilization_class] = (
-					self.EC2.calculate_cost(logged_hours,pool))
+				cost, _ = self.EC2.calculate_cost(logged_hours, pool)
+				current_simulation_costs[utilization_class] = cost
 
 			previous_cost = current_cost
 			current_cost = min(current_simulation_costs.values())

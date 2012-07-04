@@ -3,11 +3,12 @@ minimizes the cost.
 
 This module will take job flows from wherever you specify, and use them to
 approximate the amount of reserved instances you should buy and how much money
-you will save by doing so. 
+you will save by doing so.
 
 If you are looking for instructions to run the program, look at the
 readme in the root EMRio folder.
 """
+import json
 import sys
 import logging
 from optparse import OptionParser
@@ -17,7 +18,7 @@ import boto
 from config import EC2
 from graph_jobs import instance_usage_graph
 from graph_jobs import total_hours_graph
-from job_handler import get_job_flows
+from job_handler import get_job_flows, load_job_flows_from_amazon
 from optimizer import convert_to_yearly_estimated_hours
 from optimizer import Optimizer
 from simulate_jobs import Simulator
@@ -33,9 +34,13 @@ def main(args):
 	if options.verbose:
 		logging.basicConfig(level=logging.DEBUG)
 	logging.info('Getting job flows...')
+	if options.dump:
+		write_job_flow_history(options.dump)
+		return
+	logging.disable(True)
 	job_flows = get_job_flows(options)
 
-	logging.info('Finding optimal instance pool (this may take a minute or two)...')
+	logging.info('Finding optimal instance pool (this may take a minute or two)')
 	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save)
 	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
 		pool)
@@ -91,7 +96,11 @@ def make_option_parser():
 		help='Save the optimized results so you dont calculate them multiple times')
 	option_parser.add_option(
 		'-g', '--graph', dest='graph', type='string', default='None',
-		help='Load a graph of the job flows. Current graphs are: instance_usage, total_usage')
+		help='Load a graph of the job flows. Current graphs are: instance_usage,'
+		' total_usage')
+	option_parser.add_option(
+		'-d', '--dump-jobs', dest='dump', type='string', default=None,
+		help="dumps a job history into the file specified. Won't run the optimizer.")
 	return option_parser
 
 
@@ -103,7 +112,7 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 		optimized_filename: the name of a file with the optimal instances in it.
 			if this is None, then get the data from Amazon.
 
-		save_filename: the name of a file to save the calculated results to. 
+		save_filename: the name of a file to save the calculated results to.
 			If none, don't save the file.
 
 		job_flows: A list of jobs flow dictionary objects.
@@ -146,7 +155,7 @@ def write_optimal_instances(filename, pool):
 def read_optimal_instances(filename):
 	"""Reads the file name provided and uses it to create an optimal instance
 	pool.
-	
+
 	If you want to see the format of these files, check the tests folder.
 
 	Returns:
@@ -160,6 +169,45 @@ def read_optimal_instances(filename):
 			utilization_class = utilization_class
 			pool[utilization_class][machine] = int(count)
 		return pool
+
+
+def write_job_flow_history(filename):
+	"""This will write out all the job flows to a file.
+
+	Args:
+		filename: file to write or append job json objects to.
+
+	"""
+	job_flows = load_job_flows_from_amazon(None, None)
+	json_ready_job_flows = {}
+
+	# Job flow dicts have a lot of boto objects that need to be removed first.
+	# This only keeps relevant info to write to the file.
+	for job in job_flows:
+		json_job = {}
+		json_job['startdatetime'] = job.get('startdatetime', None)
+		json_job['enddatetime'] = job.get('enddatetime', None)
+		json_job['jobflowid'] = job['jobflowid']
+		json_job['instancegroups'] = []
+		for instance in job['instancegroups']:
+			json_instance = {}
+			json_instance['instancetype'] = instance['instancetype']
+			json_instance['instancerequestcount'] = instance['instancerequestcount']
+			json_job['instancegroups'].append(json_instance)
+		json_ready_job_flows[json_job['jobflowid']] = json_job
+
+	# Error will be thrown if there is no file, so we catch and continue.
+	try:
+		with open(filename, 'r+') as f:
+			for line in f:
+				json_job = json.loads(line)
+				json_ready_job_flows[json_job['jobflowid']] = json_job
+	except IOError:
+		pass
+
+	with open(filename, 'w') as f:
+		for json_job in json_ready_job_flows.values():
+			f.write(str(json.JSONEncoder().encode(json_job)) + '\n')
 
 
 def simulate_job_flows(job_flows, pool):
@@ -186,9 +234,10 @@ def simulate_job_flows(job_flows, pool):
 	convert_to_yearly_estimated_hours(optimal_logged_hours, interval_job_flows)
 	return optimal_logged_hours, demand_logged_hours
 
+
 def get_owned_reserved_instances():
 	"""Pulls the currently owned reserved instances from Amazon AWS
-	
+
 	Returns:
 		purchased_reserved_instances: A dict of instances you currently own.
 		looks like:
@@ -206,7 +255,7 @@ def get_owned_reserved_instances():
 		utilization_class = reserved_instance.offeringType
 		instance_type = reserved_instance.instance_type
 		purchased_reserved_instances[utilization_class][instance_type] += (
-			reserved_instance.instance_count)	
+			reserved_instance.instance_count)
 	return purchased_reserved_instances
 
 
@@ -215,7 +264,7 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool):
 
 	Takes the difference of purchased instances from optimal pool or -1 if
 	too many instances are already owned than the optimal amount.
-	
+
 	Args:
 		purchased_instances: The amount of instances currently owned.
 
@@ -224,13 +273,14 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool):
 	Returns:
 		reserved_instances_to_buy: A dict of instances to buy. Structured like pool.
 	"""
-	calculated_difference = lambda y, x: x if x - y >= 0 else -1 
+	calculated_difference = lambda y, x: x if x - y >= 0 else -1
 	reserved_instances_to_buy = EC2.init_empty_reserve_pool()
 
 	for utilization_class in optimal_pool:
 		for instance_type in optimal_pool[utilization_class]:
 			reserved_instances_to_buy[utilization_class][instance_type] = (
-				calculated_difference(purchased_instances[utilization_class][instance_type],
+				calculated_difference(
+					purchased_instances[utilization_class][instance_type],
 					optimal_pool[utilization_class][instance_type]))
 	return reserved_instances_to_buy
 
@@ -238,8 +288,8 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool):
 def output_statistics(log, pool, demand_log,):
 	"""Once everything is calculated, output here"""
 
-	optimized_cost = EC2.calculate_cost(log, pool)
-	demand_cost = EC2.calculate_cost(demand_log, EMPTY_INSTANCE_POOL)
+	optimized_cost, optimized_upfront_cost = EC2.calculate_cost(log, pool)
+	demand_cost, _ = EC2.calculate_cost(demand_log, EMPTY_INSTANCE_POOL)
 
 	owned_reserved_instances = get_owned_reserved_instances()
 	buy_instances = calculate_instances_to_buy(owned_reserved_instances, pool)
@@ -255,16 +305,17 @@ def output_statistics(log, pool, demand_log,):
 				pool[utilization_class][machine],
 				owned_reserved_instances[utilization_class][machine],
 				buy_instances[utilization_class][machine])
-	
-	print 
+
+	print
 	print " Hours Used By Instance type **************"
 	for utilization_class in demand_log:
 		for machine in demand_log[utilization_class]:
 			print "\t%s: %d" % (machine, demand_log[utilization_class][machine])
 
-	print 
+	print
 	print "Cost difference:"
 	print "Cost for Reserved Instance: $%.2f " % optimized_cost
+	print "Upfront Cost for all instances: $%.2f" % optimized_upfront_cost
 	print "Cost for all On-Demand: $%.2f" % demand_cost
 	print "Money Saved: $%.2f" % (demand_cost - optimized_cost)
 

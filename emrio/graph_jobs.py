@@ -9,7 +9,7 @@ import copy
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
-from config import EC2, TIMEZONE
+from config import EC2
 from simulate_jobs import Simulator, SimulationObserver
 
 COLORS = EC2.color_scheme()
@@ -58,8 +58,8 @@ def record_log_data(job_flows, pool):
 	return  logged_hours_per_hour, event_times
 
 
-def graph_over_time(info_over_time, 
-			hours_line, 
+def graph_over_time(info_over_time,
+			hours_line,
 			job_flows,
 			xlabel='Time job ran (in hours)',
 			ylabel='Instances run'):
@@ -68,7 +68,7 @@ def graph_over_time(info_over_time,
 
 	begin_time = min(job.get('startdatetime') for job in job_flows)
 	end_time = max(job.get('enddatetime') for job in job_flows)
-	
+
 	# If end time is during the day, round to the next day so graph looks pretty.
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
@@ -110,4 +110,3 @@ def graph_over_time(info_over_time,
 		ax.legend()
 		plt.xticks(rotation='vertical')
 	plt.show()
-

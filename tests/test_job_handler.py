@@ -12,7 +12,6 @@ from emrio.config import TIMEZONE
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 BASE_TIME = datetime.datetime(2012, 5, 20)
-INCREMENT = datetime.timedelta(0, 3600)
 INTERVAL = datetime.timedelta(0, 3600)
 INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 20
@@ -20,7 +19,7 @@ JOB = 'job1'
 
 
 def create_test_job(instance_name, count, j_id, start_time=BASE_TIME,
-	end_time=(BASE_TIME + INCREMENT)):
+	end_time=(BASE_TIME + INTERVAL)):
 	"""Creates a test job dictionary that is similar to the structure of
 	a normal job but with a lot less irrelevant data
 	"""
