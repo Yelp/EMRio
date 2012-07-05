@@ -1,3 +1,6 @@
+"""These are all the tests for ec2_cost to make sure it is properly calculating
+cost
+"""
 import copy
 import unittest
 from collections import defaultdict
@@ -27,6 +30,7 @@ MOCK_EMPTY_POOL = {
 MOCK_EMPTY_LOG = copy.deepcopy(MOCK_EMPTY_POOL)
 MOCK_EMPTY_LOG[DEMAND] = defaultdict(int)
 
+
 class TestEC2Info(unittest.TestCase):
 
 	def test_init_empty_pool(self):
@@ -49,7 +53,7 @@ class TestEC2Info(unittest.TestCase):
 			EC2.calculate_cost(MOCK_EMPTY_LOG, MOCK_HEAVY_POOL))
 		self.assertEqual(INSTANCE_UPFRONT_PRICE, cost)
 		self.assertEqual(upfront_cost, INSTANCE_UPFRONT_PRICE)
-	
+
 	def test_hourly_cost(self):
 		"""Checks to make sure EC2 cost is calculating the correct cost
 		for logged hours"""
@@ -63,11 +67,10 @@ class TestEC2Info(unittest.TestCase):
 		cost = (COST[MEDIUM_UTIL][INSTANCE_NAME]['hourly']
 			* medium_logged_hours[MEDIUM_UTIL][INSTANCE_NAME])
 		cost += (COST[MEDIUM_UTIL][INSTANCE_NAME]['upfront']
-			* medium_pool[MEDIUM_UTIL][INSTANCE_NAME] )
+			* medium_pool[MEDIUM_UTIL][INSTANCE_NAME])
 		ec2_cost, _ = EC2.calculate_cost(medium_logged_hours, medium_pool)
-		
+
 		# Actual cost calculated by hand. for m1.small
 		explicit_cost = 1603.1
 		self.assertEqual(cost, ec2_cost)
 		self.assertEqual(cost, explicit_cost)
-
