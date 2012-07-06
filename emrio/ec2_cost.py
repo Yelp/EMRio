@@ -105,7 +105,7 @@ class EC2Info(object):
 		"""
 		empty_logged_hours = {}
 		for utilization_class in self.ALL_UTILIZATION_PRIORITIES:
-			empty_logged_hours[utilization_class] = {}
+			empty_logged_hours[utilization_class] = defaultdict(int)
 		return empty_logged_hours
 
 	def init_reserve_counts(self, pool, instance_name):

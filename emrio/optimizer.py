@@ -1,10 +1,12 @@
 """The optimizer module holds all the functions relating to creating the
 best instance pool that yields the least cost over an interval of time.
 """
+import copy
 import logging
 from math import ceil
 
 from simulate_jobs import Simulator
+
 
 class Optimizer(object):
 	def __init__(self, job_flows, EC2, job_flows_interval=None):
@@ -20,7 +22,7 @@ class Optimizer(object):
 		"""Take all the max_instance counts, then use that to hill climb to
 		find the most cost efficient instance cost
 
-		Returns: 
+		Returns:
 			optimal_pool: dict of the best pool of instances to be used.
 		"""
 		if pre_existing_pool is None:
@@ -53,23 +55,26 @@ class Optimizer(object):
 		convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
 		current_min_cost, _ = self.EC2.calculate_cost(logged_hours, pool)
 		current_cost = current_min_cost
+		delta_reserved_hours = (
+			self.delta_reserved_instance_hours_generator(instance_type, pool))
 
 		while previous_cost >= current_cost:
 			current_simulation_costs = self.EC2.init_reserve_costs(float('inf'))
-
 			# Add a single instance to each utilization type, and record the costs.
 			# Choose the minimum cost utilization type.
+			logging.debug("Simulation hours added %d", delta_reserved_hours.next())
 			for utilization_class in pool:
 				# Reset the min instances to the best values.
 				for current_util in pool:
 					pool[current_util][instance_type] = current_min_instances[current_util]
+
 				pool[utilization_class][instance_type] = (
 						current_min_instances[utilization_class] + 1)
 				logged_hours = simulator.run()
+
 				convert_to_yearly_estimated_hours(logged_hours, self.job_flows_interval)
 				cost, _ = self.EC2.calculate_cost(logged_hours, pool)
 				current_simulation_costs[utilization_class] = cost
-
 			previous_cost = current_cost
 			current_cost = min(current_simulation_costs.values())
 			min_util_level = None
@@ -93,6 +98,22 @@ class Optimizer(object):
 		for utilization_class in current_min_instances:
 			pool[utilization_class][instance_type] = (
 					current_min_instances[utilization_class])
+
+	def delta_reserved_instance_hours_generator(self, instance_type, pool):
+
+		starter_pool = copy.deepcopy(pool)
+		assert(len(self.EC2.RESERVE_PRIORITIES) > 0)
+		highest_util = self.EC2.RESERVE_PRIORITIES[0]
+		iterative_simulator = Simulator(self.job_flows, starter_pool)
+		previous_logged_hours = iterative_simulator.run()
+		previous_hours = previous_logged_hours[highest_util][instance_type]
+
+		while True:
+			starter_pool[highest_util][instance_type] += 1
+			current_logged_hours = iterative_simulator.run()
+			current_hours = current_logged_hours[highest_util][instance_type]
+			yield (current_hours - previous_hours)
+			previous_hours = current_hours
 
 
 def convert_to_yearly_estimated_hours(logged_hours, interval):
@@ -123,4 +144,3 @@ def convert_to_yearly_estimated_hours(logged_hours, interval):
 		for machine in logged_hours[utilization_class]:
 			logged_hours[utilization_class][machine] = (
 				ceil(logged_hours[utilization_class][machine] * conversion_rate))
-

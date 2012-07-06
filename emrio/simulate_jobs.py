@@ -27,8 +27,8 @@ jobs_running = {
 JOB_ID is the id for the job running. The rest is setup like logs and pool.
 		It is used to keep track of what the job is currently using in instances.
 """
-
 import datetime
+from collections import defaultdict
 from config import EC2
 from heapq import heapify, heappop
 
@@ -77,7 +77,6 @@ class Simulator:
 		pool_used = EC2.init_empty_all_instance_types()
 
 		jobs_running = {}
-
 		# Start simulating events.
 		for time, event_type, job in [heappop(job_event_timeline)
 					for i in range(len(job_event_timeline))]:
@@ -100,7 +99,6 @@ class Simulator:
 			elif event_type is END:
 				self.log_hours(logged_hours, jobs_running, job_id)
 				self.remove_job(jobs_running, pool_used, job)
-
 			self.notify_observers(time, event_type, job, logged_hours, pool_used)
 		return logged_hours
 
@@ -145,7 +143,7 @@ class Simulator:
 
 	def attach_log_hours_observer(self, observer):
 		self.log_observers.append(observer)
-	
+
 	def attach_pool_use_observer(self, observer):
 		self.use_pool_observers.append(observer)
 
@@ -176,8 +174,8 @@ class Simulator:
 		job_id -- type: String
 			use: To index into jobs to get the amount of instances it is using.
 		"""
-		for utilization_class in jobs.get(job_id, None):
-			for instance_type in jobs[job_id].get(utilization_class, None):
+		for utilization_class in jobs.get(job_id, {}):
+			for instance_type in jobs[job_id].get(utilization_class, {}):
 				logged_hours[utilization_class][instance_type] = (
 						logged_hours[utilization_class].get(instance_type, 0)
 						+ jobs[job_id][utilization_class][instance_type])
@@ -220,8 +218,8 @@ class Simulator:
 
 					# Record job data for use in logging later.
 					jobs[job_id][utilization_class] = jobs[job_id].get(
-							utilization_class, {})
-					jobs[job_id][utilization_class][instance_type] = instances_utilized
+							utilization_class, defaultdict(int))
+					jobs[job_id][utilization_class][instance_type] += instances_utilized
 
 				if instances_needed == 0:
 					break
@@ -244,13 +242,13 @@ class Simulator:
 		job_id = job.get('jobflowid')
 
 		# Remove all the pool used by the instance then delete the job.
-		for utilization_class in jobs.get(job_id, None).keys():
+		for utilization_class in jobs.get(job_id, {}).keys():
 
-			for instance_type in jobs[job_id].get(utilization_class, None).keys():
+			for instance_type in jobs[job_id].get(utilization_class, {}).keys():
 				pool_used[utilization_class][instance_type] = (
 						pool_used[utilization_class].get(instance_type, 0) -
 						jobs[job_id][utilization_class][instance_type])
-				if pool_used[utilization_class][instance_type] is 0:
+				if pool_used[utilization_class][instance_type] == 0:
 					del pool_used[utilization_class][instance_type]
 		del jobs[job_id]
 
@@ -272,19 +270,7 @@ class Simulator:
 			pool_used: May rearrange the instance usage if there is a better combination
 			jobs: rearranges job instances.
 		"""
-		job_id = job.get('jobflowid')
-
-		# Remove the jobs currently used instances then allocate the job over again.
-		for utilization_class in jobs.get(job_id, None).keys():
-
-			for instance_type in jobs[job_id].get(utilization_class, None).keys():
-				pool_used[utilization_class][instance_type] = (
-						pool_used[utilization_class].get(instance_type, 0) -
-						jobs[job_id][utilization_class][instance_type]
-					)
-				if pool_used[utilization_class][instance_type] is 0:
-					del pool_used[utilization_class][instance_type]
-
+		self.remove_job(jobs, pool_used, job)
 		self.allocate_job(jobs, pool_used, job)
 
 	def _calculate_space_left(self, amt_used, utilization_class, instance_type):
@@ -298,9 +284,10 @@ class Simulator:
 		else:
 			return float('inf')
 
+
 class SimulationObserver(object):
 	"""Used to record information during each step of the simulation. 
-	
+
 	You can attach a SimulationObserver to a Simulator if you want information
 	about each event. For example, the graph module uses the SimulationObserver
 	to record the instances used during each event of the simulator so that it can
@@ -309,10 +296,10 @@ class SimulationObserver(object):
 	def __init__(self, hour_graph, recorder):
 		self.hour_graph = hour_graph
 		self.recorder = recorder
-	
+
 	def update(self, time, node_type, job, data):
 		"""Records data usage for each time node in the priority queue. The logger
-		is called twice in a single event. So this records the state of the 
+		is called twice in a single event. So this records the state of the
 		simulator before and after some event
 
 		Args:
@@ -343,5 +330,3 @@ class SimulationObserver(object):
 					self.recorder[utilization_class][instance_type] = []
 				total += data[utilization_class].get(instance_type, 0)
 				self.recorder[utilization_class][instance_type].append(total)
-
-

@@ -1,4 +1,4 @@
-PYTHON=PYTHONPATH="$(shell pwd)" unit2 discover
+UNIT2=PYTHONPATH="$(shell pwd)" unit2
 
 test: 
-	$(PYTHON) -v -s tests -t .
+	$(UNIT2) discover -v -s tests -t .
