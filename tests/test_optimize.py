@@ -29,8 +29,21 @@ DEFAULT_LOG = copy.deepcopy(EMPTY_LOG)
 DEFAULT_LOG[MEDIUM_UTIL][INSTANCE_NAME] = 100
 
 
-def create_parallel_jobs(amount, start_time=BASETIME,
-	end_time=(BASETIME + HEAVY_INTERVAL), start_count=0):
+def create_parallel_jobs(amount,
+						start_time=BASETIME,
+						end_time=(BASETIME + HEAVY_INTERVAL),
+						start_count=0):
+		"""Creates pseudo-jobs that will run in parallel with each other.
+
+		Args:
+			amount: Amount of jobs to run in parallel.
+
+			start_time: a datetime all the jobs start at.
+
+			end_time: a datetime all the jobs end at.
+
+			start_count: job id's
+		"""
 		jobs = []
 		for i in range(amount):
 			test_job = create_test_job(INSTANCE_NAME, BASE_INSTANCES,
@@ -39,10 +52,20 @@ def create_parallel_jobs(amount, start_time=BASETIME,
 		return jobs
 
 
-def create_test_job(instance_name, count, j_id, start_time=BASETIME,
-	end_time=(BASETIME + HEAVY_INTERVAL)):
-	job1 = {'instancegroups': create_test_instancegroup(instance_name, count),
-	'jobflowid': j_id, 'startdatetime': start_time, 'enddatetime': end_time}
+def create_test_job(instance_name,
+					instance_count,
+					j_id,
+					start_time=BASETIME,
+					end_time=(BASETIME + HEAVY_INTERVAL)):
+	"""Creates a simple job dict object
+
+	"""
+	job1 = {
+		'instancegroups': create_test_instancegroup(instance_name, instance_count),
+		'jobflowid': j_id,
+		'startdatetime': start_time,
+		'enddatetime': end_time}
+
 	return job1
 
 
@@ -95,8 +118,6 @@ class TestOptimizeFunctions(TestCase):
 
 		self.assertEquals(optimized[HEAVY_UTIL], heavy_util)
 		self.assertEquals(optimized[MEDIUM_UTIL], medium_util)
-
-
 
 	def test_heavy_util(self):
 		"""This should just create a set of JOB_AMOUNT and then all
@@ -211,7 +232,7 @@ class TestOptimizeFunctions(TestCase):
 
 	def test_interval_converter_two_years(self):
 		"""Since we only want logs for one year, this should
-		conver the hours to half the original hours."""
+		convert the hours to half the original hours."""
 		logs = copy.deepcopy(DEFAULT_LOG)
 		logs_after = copy.deepcopy(DEFAULT_LOG)
 		logs_after[MEDIUM_UTIL][INSTANCE_NAME] = ceil(

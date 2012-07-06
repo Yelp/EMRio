@@ -30,14 +30,15 @@ EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
 def main(args):
 	option_parser = make_option_parser()
 	options, args = option_parser.parse_args(args)
-	logging.basicConfig(level=logging.INFO)
 	if options.verbose:
 		logging.basicConfig(level=logging.DEBUG)
-	logging.info('Getting job flows...')
+	else:
+		logging.basicConfig(level=logging.INFO)
+	logging.info('Getting job flows from Amazon...')
 	if options.dump:
+		logging.info("Dumping job flow history into %s", options.dump)
 		write_job_flow_history(options.dump)
 		return
-	logging.disable(True)
 	job_flows = get_job_flows(options)
 
 	logging.info('Finding optimal instance pool (this may take a minute or two)')
@@ -46,7 +47,7 @@ def main(args):
 		pool)
 	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
 
-	logging.debug('Making graphs...')
+	logging.info('Making graphs...')
 	if options.graph == 'instance_usage':
 		instance_usage_graph(job_flows, pool)
 	elif options.graph == 'total_usage':
@@ -247,6 +248,8 @@ def get_owned_reserved_instances():
 			}
 		}
 	"""
+	logging.disable(logging.INFO)
+	logging.disable(logging.DEBUG)
 	ec2_conn = boto.connect_ec2()
 	boto_reserved_instances = ec2_conn.get_all_reserved_instances()
 	ec2_conn.close()
@@ -256,6 +259,7 @@ def get_owned_reserved_instances():
 		instance_type = reserved_instance.instance_type
 		purchased_reserved_instances[utilization_class][instance_type] += (
 			reserved_instance.instance_count)
+	logging.disable(logging.NOTSET)
 	return purchased_reserved_instances
 
 
