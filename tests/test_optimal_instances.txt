@@ -1,3 +1,11 @@
-Heavy Utilization,m1.small,20
-Medium Utilization,m1.small,20
-Light Utilization,m1.small,20
+{
+"Heavy Utilization": {
+	"m1.small":20
+	},
+"Medium Utilization":{
+	"m1.small": 20
+	},
+"Light Utilization":{
+	"m1.small": 20
+	}
+}

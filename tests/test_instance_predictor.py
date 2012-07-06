@@ -11,7 +11,7 @@ from test_prices import DEMAND
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 
 STARTING_TIME = datetime.datetime(2012, 5, 20, 5)
-INTERVAL = datetime.timedelta(0, 3600) # Interval a job runs for.
+INTERVAL = datetime.timedelta(0, 3600)  # Interval a job runs for.
 
 INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 20
@@ -36,6 +36,7 @@ JOBS_RUNNING = {
 	}
 
 }
+
 
 def create_test_job(instance_name, count, j_id, start_time=STARTING_TIME,
 	end_time=(STARTING_TIME + INTERVAL)):

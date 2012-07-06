@@ -137,9 +137,7 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 def write_optimal_instances(filename, pool):
 	"""Save optimal pool results.
 
-	Format for saving is:
-	UTILIZATION_CLASS,INSTANCE_NAME,INSTANCE_COUNT
-
+	Format for saving is json.
 	An example saved instance file is in the tests folder.
 	Args:
 		filename: name of the file to save the pool to.
@@ -147,10 +145,7 @@ def write_optimal_instances(filename, pool):
 		pool: A dict of reserved instances to buy.
 	"""
 	with open(filename, 'w') as f:
-		for utilization_class in pool:
-			for machine in pool[utilization_class].keys():
-				f.write("%s,%s,%d\n" %
-				(utilization_class, machine, pool[utilization_class][machine]))
+		f.write(json.JSONEncoder().encode(pool))
 
 
 def read_optimal_instances(filename):
@@ -162,13 +157,8 @@ def read_optimal_instances(filename):
 	Returns:
 		pool: The utilization class and instances read from the file specified.
 	"""
-
-	pool = EC2.init_empty_reserve_pool()
 	with open(filename, 'r') as f:
-		for line in f:
-			utilization_class, machine, count = line.split(',')
-			utilization_class = utilization_class
-			pool[utilization_class][machine] = int(count)
+		pool = json.load(f)
 		return pool
 
 
