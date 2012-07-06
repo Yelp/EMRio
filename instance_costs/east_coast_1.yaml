@@ -1,6 +1,7 @@
 # East Coast(Virginia) 1 Year Prices as of 6/14/2012
 # data taken from:
 # http://aws.amazon.com/ec2/pricing
+
 HEAVY_UTIL: &heavy_util "Heavy Utilization"
 MEDIUM_UTIL: &medium_util "Medium Utilization"
 LIGHT_UTIL: &light_util "Light Utilization"
