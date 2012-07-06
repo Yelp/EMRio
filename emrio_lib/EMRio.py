@@ -14,9 +14,9 @@ import logging
 from optparse import OptionParser
 
 import boto
+import pytz
 
-from config import EC2
-from ec2_cost import instance_types_in_pool
+from ec2_cost import instance_types_in_pool, EC2Info
 from graph_jobs import instance_usage_graph
 from graph_jobs import total_hours_graph
 from job_handler import get_job_flows, load_job_flows_from_amazon
@@ -24,29 +24,31 @@ from optimizer import convert_to_yearly_estimated_hours
 from optimizer import Optimizer
 from simulate_jobs import Simulator
 
-# This is used for calculating on-demand usage.
-EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
-
 
 def main(args):
 	option_parser = make_option_parser()
 	options, args = option_parser.parse_args(args)
+	timezone = pytz.timezone(options.timezone)
+	EC2 = EC2Info(options.instance_costs)
+
 	if options.verbose:
 		logging.basicConfig(level=logging.DEBUG)
 	else:
 		logging.basicConfig(level=logging.INFO)
+
 	logging.info('Getting job flows from Amazon...')
 	if options.dump:
 		logging.info("Dumping job flow history into %s", options.dump)
 		write_job_flow_history(options.dump)
 		return
-	job_flows = get_job_flows(options)
 
+	job_flows = get_job_flows(options, timezone)
 	logging.info('Finding optimal instance pool (this may take a minute or two)')
-	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save)
+	pool = get_best_instance_pool(job_flows, options.optimized_file, options.save,
+		EC2)
 	optimal_logged_hours, demand_logged_hours = simulate_job_flows(job_flows,
-		pool)
-	output_statistics(optimal_logged_hours, pool, demand_logged_hours)
+		pool, EC2)
+	output_statistics(optimal_logged_hours, pool, demand_logged_hours, EC2)
 
 	logging.info('Making graphs...')
 	if options.graph == 'instance_usage':
@@ -102,10 +104,19 @@ def make_option_parser():
 	option_parser.add_option(
 		'-d', '--dump-jobs', dest='dump', type='string', default=None,
 		help="dumps a job history into the file specified. Won't run the optimizer.")
+	option_parser.add_option(
+		'-t', '--timezone', dest='timezone', type='string', default="US/Alaska",
+		help="This option specifies a different timezone for the grapher to display"
+		"in. The default timezone is 'US/Pacific' but to change it, use pytz string"
+		"names")
+	option_parser.add_option(
+		'--instance-cost', dest='instance_costs', type='string',
+		default="emrio_lib/ec2/west_coast_1.yaml", help="This option specifies the"
+		"cost zone you want to calculate for. The default is west-coast-1")
 	return option_parser
 
 
-def get_best_instance_pool(job_flows, optimized_filename, save_filename):
+def get_best_instance_pool(job_flows, optimized_filename, save_filename, EC2):
 	"""Returns the best instance flow based on the job_flows passed in or
 	a file passed in by the user.
 
@@ -125,7 +136,7 @@ def get_best_instance_pool(job_flows, optimized_filename, save_filename):
 		pool = read_optimal_instances(optimized_filename)
 	else:
 
-		owned_reserved_instances = get_owned_reserved_instances()
+		owned_reserved_instances = get_owned_reserved_instances(EC2)
 		pool = Optimizer(job_flows, EC2).run(
 				pre_existing_pool=owned_reserved_instances)
 
@@ -201,7 +212,7 @@ def write_job_flow_history(filename):
 			f.write(str(json.JSONEncoder().encode(json_job)) + '\n')
 
 
-def simulate_job_flows(job_flows, pool):
+def simulate_job_flows(job_flows, pool, EC2):
 	"""Simulates the job flows using the pool, and will also simulate pure
 	on-demand hours with no pool and return both.
 
@@ -216,8 +227,9 @@ def simulate_job_flows(job_flows, pool):
 	job_flows_end_time = max(job.get('enddatetime') for job in job_flows)
 	interval_job_flows = job_flows_end_time - job_flows_begin_time
 
-	optimal_simulator = Simulator(job_flows, pool)
-	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL)
+	EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
+	optimal_simulator = Simulator(job_flows, pool, EC2)
+	demand_simulator = Simulator(job_flows, EMPTY_INSTANCE_POOL, EC2)
 	optimal_logged_hours = optimal_simulator.run()
 	demand_logged_hours = demand_simulator.run()
 
@@ -226,7 +238,7 @@ def simulate_job_flows(job_flows, pool):
 	return optimal_logged_hours, demand_logged_hours
 
 
-def get_owned_reserved_instances():
+def get_owned_reserved_instances(EC2):
 	"""Pulls the currently owned reserved instances from Amazon AWS
 
 	Returns:
@@ -240,6 +252,7 @@ def get_owned_reserved_instances():
 	"""
 	logging.disable(logging.INFO)
 	logging.disable(logging.DEBUG)
+	logging.disable(logging.ERROR)
 	ec2_conn = boto.connect_ec2()
 	boto_reserved_instances = ec2_conn.get_all_reserved_instances()
 	ec2_conn.close()
@@ -253,7 +266,7 @@ def get_owned_reserved_instances():
 	return purchased_reserved_instances
 
 
-def calculate_instances_to_buy(purchased_instances, optimal_pool):
+def calculate_instances_to_buy(purchased_instances, optimal_pool, EC2):
 	"""Calculate the amount of instances to buy from amazon.
 
 	Takes the difference of purchased instances from optimal pool or -1 if
@@ -279,14 +292,15 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool):
 	return reserved_instances_to_buy
 
 
-def output_statistics(log, pool, demand_log,):
+def output_statistics(log, pool, demand_log, EC2):
 	"""Once everything is calculated, output here"""
-
+	EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
 	optimized_cost, optimized_upfront_cost = EC2.calculate_cost(log, pool)
 	demand_cost, _ = EC2.calculate_cost(demand_log, EMPTY_INSTANCE_POOL)
 
-	owned_reserved_instances = get_owned_reserved_instances()
-	buy_instances = calculate_instances_to_buy(owned_reserved_instances, pool)
+	owned_reserved_instances = get_owned_reserved_instances(EC2)
+	buy_instances = calculate_instances_to_buy(owned_reserved_instances, pool,
+		EC2)
 
 	all_instances = instance_types_in_pool(pool)
 	all_instances.union(instance_types_in_pool(owned_reserved_instances))

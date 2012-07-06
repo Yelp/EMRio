@@ -46,7 +46,7 @@ class Optimizer(object):
 
 		Mutates: pool
 		"""
-		simulator = Simulator(self.job_flows, pool)
+		simulator = Simulator(self.job_flows, pool, self.EC2)
 		previous_cost = float('inf')
 		current_min_cost = float("inf")
 		current_cost = float('inf')
@@ -106,7 +106,7 @@ class Optimizer(object):
 		starter_pool = copy.deepcopy(pool)
 		assert(len(self.EC2.RESERVE_PRIORITIES) > 0)
 		highest_util = self.EC2.RESERVE_PRIORITIES[0]
-		iterative_simulator = Simulator(self.job_flows, starter_pool)
+		iterative_simulator = Simulator(self.job_flows, starter_pool, self.EC2)
 		previous_logged_hours = iterative_simulator.run()
 		previous_hours = previous_logged_hours[highest_util][instance_type]
 

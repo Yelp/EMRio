@@ -15,7 +15,7 @@ import boto.exception
 from boto.emr.connection import EmrConnection
 
 
-def get_job_flows(options):
+def get_job_flows(options, timezone):
 	"""Get job flows data from amazon's cluster or read job flows from
 	a file.
 
@@ -33,8 +33,9 @@ def get_job_flows(options):
 			options.max_days_ago)
 
 	job_flows = no_date_filter(job_flows)
-	job_flows = convert_dates(job_flows)
-	job_flows = range_date_filter(job_flows, options.min_days, options.max_days)
+	job_flows = convert_dates(job_flows, timezone)
+	job_flows = range_date_filter(job_flows, options.min_days, options.max_days,
+		timezone)
 
 	# sort job flows before running simulations.
 	by_startdatetime = lambda j: j.get('startdatetime')
@@ -42,7 +43,7 @@ def get_job_flows(options):
 	return job_flows
 
 
-def convert_dates(job_flows):
+def convert_dates(job_flows, timezone):
 	"""Converts the dates of all the jobs to the datetime object
 	since they are originally in unicode strings
 
@@ -55,8 +56,8 @@ def convert_dates(job_flows):
 	"""
 
 	for job in job_flows:
-		job['startdatetime'] = parse_date(job['startdatetime'])
-		job['enddatetime'] = parse_date(job['enddatetime'])
+		job['startdatetime'] = parse_date(job['startdatetime'], timezone=timezone)
+		job['enddatetime'] = parse_date(job['enddatetime'], timezone=timezone)
 
 	return job_flows
 
@@ -77,7 +78,7 @@ def no_date_filter(job_flows):
 	return filtered_job_flows
 
 
-def range_date_filter(job_flows, min_days, max_days):
+def range_date_filter(job_flows, min_days, max_days, timezone):
 	"""Removes any job that is not within the interval of min day and
 	max day and returns the new filtered list.
 
@@ -104,7 +105,7 @@ def range_date_filter(job_flows, min_days, max_days):
 	return filtered_job_flows
 
 
-def parse_date(str_date):
+def parse_date(str_date, timezone=None):
 	"""Changes a string that conforms to iso8601 to a non-naive datetime
 	object.
 
@@ -114,7 +115,7 @@ def parse_date(str_date):
 	Returns: datetime.datetime object in UTC tz.
 	"""
 	current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
-	current_date = current_date.replace(tzinfo=TIMEZONE)
+	current_date = current_date.replace(tzinfo=timezone)
 	return current_date
 
 

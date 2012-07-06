@@ -1,34 +1,11 @@
-# Cost is structured like so:
-# COST
-#    UTILIZATION_CLASS:
-#       INSTANCE_TYPE:{
-#           'upfront': UPFRONT_COST,
-#           'hourly': HOURLY_COST
-#       }
-#   
-#
-# UTILIZATION_CLASS can be either the reserved instance utilization, like heavy or 
-# just the type of utilization, such as on-demand.
-# 
-# INSTANCE_TYPE is the type of instance, like m1.small. For all instance types, check out:
-#   http://aws.amazon.com/ec2/instance-types/
-#
-# UPFRONT_COST is the cost to buy a machine for a yearly allotment. HEAVY UTILIZATION
-#   runs throughout the year whether you use it or not, which is why it is all an
-#   upfront cost, since the cost for a year is consistent from the beginning.
-#
-# HOURLY_COST is the cost to run the machine for one hour on a certain utilization and
-# instance type.
-
+# West Coast(North California) 1 Year Prices as of 6/14/2012
+# data taken from: 
+# http://aws.amazon.com/ec2/pricing
 HEAVY_UTIL: &heavy_util "Heavy Utilization"
 MEDIUM_UTIL: &medium_util "Medium Utilization"
 LIGHT_UTIL: &light_util "Light Utilization"
 DEMAND: &demand "On Demand"
 
-# You need to specify the priority in which reserved instances should be run.
-# In this example (and in Amazon at the moment), Heavy utilization machines will be
-# chosen first if you have them, then medium will be and finally light will be chosen
-# if there are no heavy or mediums to choose from. 
 reserve_priorities: [*heavy_util, *medium_util, *light_util]
 
 cost:

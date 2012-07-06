@@ -6,10 +6,8 @@ import pytz
 # Setup a mock EC2 since west coast can be changed in the future.
 from emrio_lib.job_handler import no_date_filter, range_date_filter
 from emrio_lib.ec2_cost import EC2Info
-from test_prices import COST, RESERVE_PRIORITIES
-from emrio_lib.config import TIMEZONE
-
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)
+TIMEZONE = pytz.timezone("US/Alaska")
+EC2 = EC2Info("tests/test.yaml")
 
 BASE_TIME = datetime.datetime(2012, 5, 20)
 INTERVAL = datetime.timedelta(0, 3600)
@@ -63,7 +61,7 @@ class TestJobHandlerFunctions(TestCase):
 			start_time=min_date_datetime)
 		job_flows_after = [normal_date]
 		job_flows = [outside_date, normal_date]
-		job_flows = range_date_filter(job_flows, min_date, None)
+		job_flows = range_date_filter(job_flows, min_date, None, TIMEZONE)
 		self.assertEqual(job_flows, job_flows_after)
 
 if __name__ == '__main__':

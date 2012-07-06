@@ -5,10 +5,10 @@ from unittest import TestCase
 
 from emrio_lib.ec2_cost import EC2Info
 from emrio_lib.simulate_jobs import Simulator
-from test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
+from test_prices import HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL
 from test_prices import DEMAND
 
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)
+EC2 = EC2Info("tests/test.yaml")
 
 STARTING_TIME = datetime.datetime(2012, 5, 20, 5)
 INTERVAL = datetime.timedelta(0, 3600)  # Interval a job runs for.
@@ -63,7 +63,8 @@ class TestOptimizeFunctions(TestCase):
 		pool_used = copy.deepcopy(EMPTY_POOL)
 		pool_used_after = HEAVY_POOL
 
-		Simulator(EMPTY_JOB_FLOWS, pool).allocate_job(jobs_running, pool_used, job)
+		Simulator(EMPTY_JOB_FLOWS, pool, EC2).allocate_job(jobs_running, pool_used,
+			job)
 		self.assertEqual(jobs_running, JOBS_RUNNING)
 		self.assertEqual(pool_used_after, pool_used)
 
@@ -76,7 +77,7 @@ class TestOptimizeFunctions(TestCase):
 		pool_used = copy.deepcopy(HEAVY_POOL)
 		pool_used_after = EMPTY_POOL
 
-		Simulator(EMPTY_JOB_FLOWS, EMPTY_POOL).remove_job(jobs_running,
+		Simulator(EMPTY_JOB_FLOWS, EMPTY_POOL, EC2).remove_job(jobs_running,
 			pool_used, job)
 		self.assertEqual(jobs_running, jobs_running_after)
 		self.assertEqual(pool_used_after, pool_used)
@@ -96,7 +97,7 @@ class TestOptimizeFunctions(TestCase):
 		pool = HEAVY_POOL
 		pool_used = copy.deepcopy(EMPTY_POOL)
 		job = create_test_job(INSTANCE_NAME, BASE_INSTANCES, JOB_NAME)
-		Simulator(EMPTY_JOB_FLOWS, pool).rearrange_instances(jobs_running,
+		Simulator(EMPTY_JOB_FLOWS, pool, EC2).rearrange_instances(jobs_running,
 			pool_used, job)
 		HEAVY_UTIL_USED = {
 			INSTANCE_NAME: BASE_INSTANCES
@@ -109,7 +110,7 @@ class TestOptimizeFunctions(TestCase):
 		the JOBS_RUNNING of heavy instances to the empty log hours.
 		"""
 		log = copy.deepcopy(EMPTY_POOL)
-		simulator = Simulator(EMPTY_JOB_FLOWS, EMPTY_POOL)
+		simulator = Simulator(EMPTY_JOB_FLOWS, EMPTY_POOL, EC2)
 		simulator.log_hours(log, JOBS_RUNNING, JOB_NAME)
 		self.assertEqual(log, HEAVY_POOL)
 
@@ -127,7 +128,7 @@ class TestOptimizeFunctions(TestCase):
 		# anything leftover will be in demand.
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES}
 		demand_log = {INSTANCE_NAME: BASE_INSTANCES * 2}
-		log = Simulator(current_jobs, HEAVY_POOL).run()
+		log = Simulator(current_jobs, HEAVY_POOL, EC2).run()
 		self.assertEqual(log[HEAVY_UTIL], reserve_log)
 		self.assertEqual(log[DEMAND], demand_log)
 
@@ -154,21 +155,21 @@ class TestOptimizeFunctions(TestCase):
 		# anything leftover will be in demand.
 		reserve_log = {INSTANCE_NAME: BASE_INSTANCES * len(current_jobs)}
 		demand_log = {}
-		log = Simulator(current_jobs, HEAVY_POOL).run()
+		log = Simulator(current_jobs, HEAVY_POOL, EC2).run()
 		self.assertEqual(log[HEAVY_UTIL], reserve_log)
 		self.assertEqual(log[DEMAND], demand_log)
 
 	def test_empty_jobs(self):
 		"""If there are no jobs, the simulation produces an empty log."""
 		current_jobs = []
-		log = Simulator(current_jobs, HEAVY_POOL).run()
+		log = Simulator(current_jobs, HEAVY_POOL, EC2).run()
 		self.assertEqual(log, EMPTY_LOG)
 
 	def test_empty_pool(self):
 		"""An empty pool (pool = {}) is malformed and should raise an error."""
 		current_jobs = [create_test_job(INSTANCE_NAME, BASE_INSTANCES, 'j1')]
 		try:
-			Simulator(current_jobs, {}).run()
+			Simulator(current_jobs, {}, EC2).run()
 			self.assertTrue(False)  # This shouldn't execute.
 		except KeyError:
 			self.assertTrue(True)

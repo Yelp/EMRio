@@ -7,9 +7,7 @@ from collections import defaultdict
 
 from emrio_lib.ec2_cost import EC2Info
 from test_prices import HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, DEMAND
-from test_prices import COST, RESERVE_PRIORITIES
-
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)
+EC2 = EC2Info("tests/test.yaml")
 
 INSTANCE_NAME = 'm1.small'
 INSTANCE_COUNT = 10
@@ -48,7 +46,7 @@ class TestEC2Info(unittest.TestCase):
 		"""Checks the heavy utility upfront cost to make sure ec2
 		is calculating correct amounts"""
 		INSTANCE_UPFRONT_PRICE = (
-			INSTANCE_COUNT * COST[HEAVY_UTIL][INSTANCE_NAME]['upfront'])
+			INSTANCE_COUNT * EC2.COST[HEAVY_UTIL][INSTANCE_NAME]['upfront'])
 		cost, upfront_cost = (
 			EC2.calculate_cost(MOCK_EMPTY_LOG, MOCK_HEAVY_POOL))
 		self.assertEqual(INSTANCE_UPFRONT_PRICE, cost)
@@ -64,9 +62,9 @@ class TestEC2Info(unittest.TestCase):
 		medium_pool = copy.deepcopy(MOCK_EMPTY_POOL)
 		medium_pool[MEDIUM_UTIL][INSTANCE_NAME] = INSTANCE_COUNT
 
-		cost = (COST[MEDIUM_UTIL][INSTANCE_NAME]['hourly']
+		cost = (EC2.COST[MEDIUM_UTIL][INSTANCE_NAME]['hourly']
 			* medium_logged_hours[MEDIUM_UTIL][INSTANCE_NAME])
-		cost += (COST[MEDIUM_UTIL][INSTANCE_NAME]['upfront']
+		cost += (EC2.COST[MEDIUM_UTIL][INSTANCE_NAME]['upfront']
 			* medium_pool[MEDIUM_UTIL][INSTANCE_NAME])
 		ec2_cost, _ = EC2.calculate_cost(medium_logged_hours, medium_pool)
 

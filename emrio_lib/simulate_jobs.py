@@ -29,7 +29,6 @@ JOB_ID is the id for the job running. The rest is setup like logs and pool.
 """
 import datetime
 from collections import defaultdict
-from config import EC2
 from heapq import heapify, heappop
 
 # If there are events happening at the same time in the priority queue, START
@@ -42,11 +41,12 @@ END = 0
 
 class Simulator:
 
-	def __init__(self, job_flows, pool):
+	def __init__(self, job_flows, pool, EC2):
 		self.pool = pool
 		self.job_flows = job_flows
 		self.log_observers = []
 		self.use_pool_observers = []
+		self.EC2 = EC2
 
 	def run(self):
 		"""Will simulate a job flow using a reserved instance pool.
@@ -71,10 +71,10 @@ class Simulator:
 		"""
 		# Setup the queue, state variables and logger.
 		job_event_timeline = self.setup_job_event_timeline()
-		logged_hours = EC2.init_empty_all_instance_types()
+		logged_hours = self.EC2.init_empty_all_instance_types()
 		# The pool used is the amount of instances that are currently in
 		# use by the simulator. available instances = pool - used.
-		pool_used = EC2.init_empty_all_instance_types()
+		pool_used = self.EC2.init_empty_all_instance_types()
 
 		jobs_running = {}
 		# Start simulating events.
@@ -163,10 +163,10 @@ class Simulator:
 		"""
 
 		for observer in self.use_pool_observers:
-			observer.update(time, event_type, job, pool_used)
+			observer.update(time, event_type, job, pool_used, self.EC2)
 
 		for observer in self.log_observers:
-			observer.update(time, event_type, job, logged_hours)
+			observer.update(time, event_type, job, logged_hours, self.EC2)
 
 	def log_hours(self, logged_hours, jobs, job_id):
 		"""Will add the hours of the specified job running to the logs.
@@ -198,13 +198,15 @@ class Simulator:
 
 		# A small function that will choose the amount of instances used.
 		# If the job needs more instances than the pool has, choose have.
+		# Used to make sure that we only allocate space we have to the pool
+		# otherwise the leftover amount will go to the next utilization class.
 		use_space = lambda need, have: need if need < have else have
 		jobs[job_id] = {}
 		for instance in job.get('instancegroups', []):
 			instance_type = instance.get('instancetype')
 			instances_needed = int(instance.get('instancerequestcount', 0))
 
-			for utilization_class in EC2.ALL_UTILIZATION_PRIORITIES:
+			for utilization_class in self.EC2.ALL_UTILIZATION_PRIORITIES:
 				current_use = pool_used[utilization_class].get(instance_type, 0)
 				space_left = self._calculate_space_left(current_use,
 						utilization_class, instance_type)
@@ -279,14 +281,14 @@ class Simulator:
 		a reserved instance, then the space left is infinite since
 		we don't have to reserve that type upfront.
 		"""
-		if EC2.is_reserve_type(utilization_class):
+		if self.EC2.is_reserve_type(utilization_class):
 			return self.pool[utilization_class].get(instance_type, 0) - amt_used
 		else:
 			return float('inf')
 
 
 class SimulationObserver(object):
-	"""Used to record information during each step of the simulation. 
+	"""Used to record information during each step of the simulation.
 
 	You can attach a SimulationObserver to a Simulator if you want information
 	about each event. For example, the graph module uses the SimulationObserver
@@ -297,7 +299,7 @@ class SimulationObserver(object):
 		self.hour_graph = hour_graph
 		self.recorder = recorder
 
-	def update(self, time, node_type, job, data):
+	def update(self, time, node_type, job, data, EC2):
 		"""Records data usage for each time node in the priority queue. The logger
 		is called twice in a single event. So this records the state of the
 		simulator before and after some event

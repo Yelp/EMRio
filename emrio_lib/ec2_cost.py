@@ -19,6 +19,7 @@ logged_hours: are pools that count the amount of hours that instances run for,
 """
 
 import copy
+import yaml
 from collections import defaultdict
 
 
@@ -28,23 +29,27 @@ class EC2Info(object):
 	calculate the costs of instances.
 	"""
 
-	def __init__(self, cost, reserve_priorities):
+	def __init__(self, filename):
 		"""Sets up the EC2Info object for later calculations.
 
 		Args:
-			cost: dict of all the costs (Comes from price configurations)
-
-			reserve_priorities: this is all the reserve utilization_classizations in sorted order
-			or priorities.
+			filename: The name of the yaml file that holds all the
+			cost configurations. To see an example of a cost config,
+			look in tests/test.yaml
 		"""
-
-		self.COST = cost
-		self.RESERVE_PRIORITIES = reserve_priorities
-
+		try:
+			with open(filename) as f:
+				datamap = yaml.load(f)
+			self.COST = datamap['cost']
+			self.RESERVE_PRIORITIES = datamap['reserve_priorities']
+		except IOError:
+			raise("Wrong yaml filename.")
+		except Exception:
+			raise("Wrong yaml format from file provided.")
 		# Copy reserve_priorities since we want to preserve priority order.
-		all_priorities = copy.deepcopy(reserve_priorities)
+		all_priorities = copy.deepcopy(self.RESERVE_PRIORITIES)
 
-		for utilization_class in cost.keys():
+		for utilization_class in self.COST.keys():
 			if utilization_class not in all_priorities:
 				all_priorities.append(utilization_class)
 		self.ALL_UTILIZATION_PRIORITIES = all_priorities
@@ -102,7 +107,7 @@ class EC2Info(object):
 		classes while this will include others like on demand.
 
 		Returns:
-			Same as init_empty_reserve_pool except for all utilization_classization types.
+			Same as init_empty_reserve_pool except for all utilization_class types.
 		"""
 		empty_logged_hours = {}
 		for utilization_class in self.ALL_UTILIZATION_PRIORITIES:

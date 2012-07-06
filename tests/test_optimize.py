@@ -8,8 +8,8 @@ from emrio_lib.optimizer import Optimizer, convert_to_yearly_estimated_hours
 from emrio_lib import ec2_cost
 from test_prices import *
 
-EC2 = ec2_cost.EC2Info(COST, RESERVE_PRIORITIES)
-
+EC2 = ec2_cost.EC2Info("tests/test.yaml")
+print EC2.COST
 BASETIME = datetime.datetime(2012, 5, 20, 5)
 
 LIGHT_INTERVAL = datetime.timedelta(0, 30000)

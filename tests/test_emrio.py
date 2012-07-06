@@ -2,9 +2,8 @@
 import unittest
 from emrio_lib.ec2_cost import EC2Info
 from emrio_lib.EMRio import read_optimal_instances
-from test_prices import COST, RESERVE_PRIORITIES
 
-EC2 = EC2Info(COST, RESERVE_PRIORITIES)
+EC2 = EC2Info("tests/test.yaml")
 OPTIMIZED_FILE_NAME = "tests/test_optimal_instances.txt"
 INSTANCE_NAME = 'm1.small'
 INSTANCE_COUNT = 20
