@@ -1,7 +1,7 @@
 """Tests for the main EMRio module are here."""
 import unittest
-from emrio.ec2_cost import EC2Info
-from emrio.EMRio import read_optimal_instances
+from emrio_lib.ec2_cost import EC2Info
+from emrio_lib.EMRio import read_optimal_instances
 from test_prices import COST, RESERVE_PRIORITIES
 
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)

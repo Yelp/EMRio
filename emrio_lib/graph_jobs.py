@@ -10,6 +10,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
 from config import EC2
+from ec2_cost import instance_types_in_pool
 from simulate_jobs import Simulator, SimulationObserver
 
 COLORS = EC2.color_scheme()
@@ -73,7 +74,7 @@ def graph_over_time(info_over_time,
 	if end_time.hour != 0:
 		end_time = end_time.replace(hour=0, day=(end_time.day + 1))
 
-	for instance_type in EC2.instance_types_in_pool(info_over_time):
+	for instance_type in instance_types_in_pool(info_over_time):
 		# Locators / Formatters to pretty up the graph.
 		hours = mdates.HourLocator(byhour=None, interval=1)
 		days = mdates.DayLocator(bymonthday=None, interval=1)

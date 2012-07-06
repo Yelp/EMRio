@@ -3,8 +3,8 @@ import unittest
 import datetime
 from unittest import TestCase
 
-from emrio.ec2_cost import EC2Info
-from emrio.simulate_jobs import Simulator
+from emrio_lib.ec2_cost import EC2Info
+from emrio_lib.simulate_jobs import Simulator
 from test_prices import COST, HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, RESERVE_PRIORITIES
 from test_prices import DEMAND
 

@@ -1,0 +1,5 @@
+#!/usr/bin/python
+import emrio_lib
+import sys
+if __name__ == '__main__':
+    emrio_lib.EMRio.main(sys.argv[1:])

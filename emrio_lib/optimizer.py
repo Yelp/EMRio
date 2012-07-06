@@ -5,6 +5,8 @@ import copy
 import logging
 from math import ceil
 
+from ec2_cost import instance_types_in_pool
+from ec2_cost import fill_instance_types
 from simulate_jobs import Simulator
 
 
@@ -32,8 +34,8 @@ class Optimizer(object):
 
 		# Zero-ing the instances just makes it so the optimized pool
 		# knows all the instance_types the job flows use beforehand.
-		self.EC2.fill_instance_types(self.job_flows, optimized_pool)
-		for instance in self.EC2.instance_types_in_pool(optimized_pool):
+		fill_instance_types(self.job_flows, optimized_pool)
+		for instance in instance_types_in_pool(optimized_pool):
 			logging.debug("Finding optimal instances for %s", instance)
 			self.optimize_reserve_pool(instance, optimized_pool)
 		return optimized_pool

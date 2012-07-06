@@ -16,6 +16,7 @@ from optparse import OptionParser
 import boto
 
 from config import EC2
+from ec2_cost import instance_types_in_pool
 from graph_jobs import instance_usage_graph
 from graph_jobs import total_hours_graph
 from job_handler import get_job_flows, load_job_flows_from_amazon
@@ -55,9 +56,8 @@ def main(args):
 
 
 def make_option_parser():
-	usage = '%prog [options]'
 	description = 'Print a giant report on EMR usage.'
-	option_parser = OptionParser(usage=usage, description=description)
+	option_parser = OptionParser(description=description)
 	option_parser.add_option(
 		'-v', '--verbose', dest='verbose', default=False, action='store_true',
 		help='print more messages to stderr')
@@ -84,7 +84,7 @@ def make_option_parser():
 			'starts before this day, it is discarded (e.g.: --max-days 2012/05/07)')
 		)
 	option_parser.add_option(
-		'-f', '--file', dest='file_inputs', type='string', default=None,
+		'--file', dest='file_inputs', type='string', default=None,
 		help="Input a file that has job flows JSON encoded. The format is 1 job"
 			"per line or comma separated jobs."
 		)
@@ -93,7 +93,7 @@ def make_option_parser():
 		help=("Uses a previously saved optimized pool instead of calculating it from"
 		" the job flows"))
 	option_parser.add_option(
-		'--save_optimized', dest='save', type='string', default=None,
+		'--cache', dest='save', type='string', default=None,
 		help='Save the optimized results so you dont calculate them multiple times')
 	option_parser.add_option(
 		'-g', '--graph', dest='graph', type='string', default='None',
@@ -298,8 +298,8 @@ def output_statistics(log, pool, demand_log,):
 	owned_reserved_instances = get_owned_reserved_instances()
 	buy_instances = calculate_instances_to_buy(owned_reserved_instances, pool)
 
-	all_instances = EC2.instance_types_in_pool(pool)
-	all_instances.union(EC2.instance_types_in_pool(owned_reserved_instances))
+	all_instances = instance_types_in_pool(pool)
+	all_instances.union(instance_types_in_pool(owned_reserved_instances))
 
 	print "%20s %15s %15s %15s" % ('', 'Optimal', 'Owned', 'To Purchase')
 	for utilization_class in EC2.RESERVE_PRIORITIES:

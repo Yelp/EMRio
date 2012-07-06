@@ -4,10 +4,10 @@ from unittest import TestCase
 
 import pytz
 # Setup a mock EC2 since west coast can be changed in the future.
-from emrio.job_handler import no_date_filter, range_date_filter
-from emrio.ec2_cost import EC2Info
+from emrio_lib.job_handler import no_date_filter, range_date_filter
+from emrio_lib.ec2_cost import EC2Info
 from test_prices import COST, RESERVE_PRIORITIES
-from emrio.config import TIMEZONE
+from emrio_lib.config import TIMEZONE
 
 EC2 = EC2Info(COST, RESERVE_PRIORITIES)
 

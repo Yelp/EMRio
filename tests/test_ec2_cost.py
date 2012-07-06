@@ -5,7 +5,7 @@ import copy
 import unittest
 from collections import defaultdict
 
-from emrio.ec2_cost import EC2Info
+from emrio_lib.ec2_cost import EC2Info
 from test_prices import HEAVY_UTIL, MEDIUM_UTIL, LIGHT_UTIL, DEMAND
 from test_prices import COST, RESERVE_PRIORITIES
 

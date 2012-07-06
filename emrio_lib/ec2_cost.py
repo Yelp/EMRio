@@ -21,6 +21,7 @@ logged_hours: are pools that count the amount of hours that instances run for,
 import copy
 from collections import defaultdict
 
+
 class EC2Info(object):
 	"""This class is used to store EC2 info like costs from the config
 	file. All the functions in it use that config to build pools or
@@ -140,23 +141,6 @@ class EC2Info(object):
 			reserve_costs[utilization_class] = init_value
 		return reserve_costs
 
-	@staticmethod
-	def instance_types_in_pool(pool):
-		"""Gets the set of all instance types in
-		a pool or log
-
-		Args:
-			pool: Instances currently owned for each utilization_classization type.
-
-		Returns:
-			A set of all the instances used for all utilization_classization types.
-		"""
-		instance_types = set()
-		for utilization_class in pool:
-			for instance_type in pool[utilization_class]:
-				instance_types.add(instance_type)
-		return instance_types
-
 	def is_reserve_type(self, instance_type):
 		"""This just returns if a utilization_classization type is
 		a reserve instance. If not, it is probably DEMAND type.
@@ -196,33 +180,49 @@ class EC2Info(object):
 			green = int(green + increment)
 		return colors
 
-	@staticmethod
-	def fill_instance_types(job_flows, pool):
-		"""Use this function to fill the instance pool
-		with all the instance types used in the job flows.
 
-		example: if the job_flows has m1.small, and m1.large
-		and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
-		resultant pool from the function will be:
+def fill_instance_types(job_flows, pool):
+	"""Use this function to fill the instance pool
+	with all the instance types used in the job flows.
 
-		pool = {
-			LIGHT_UTIL: {
-				'm1.small': 0, 'm1.large': 0
-			}
-			HEAVY_UTIL: {
-				'm1.small': 0, 'm1.large': 0
-			}
+	example: if the job_flows has m1.small, and m1.large
+	and we had 2 utils of LIGHT_UTIL and HEAVY_UTIL, the
+	resultant pool from the function will be:
+
+	pool = {
+		LIGHT_UTIL: {
+			'm1.small': 0, 'm1.large': 0
 		}
-		Args:
-			pool: A dict of utilization level dictionaries with nothing in them.
+		HEAVY_UTIL: {
+			'm1.small': 0, 'm1.large': 0
+		}
+	}
+	Args:
+		pool: A dict of utilization level dictionaries with nothing in them.
 
-		Mutates:
-			pool: for each utilization type, it fills in all the instance_types
-				that any job uses.
-		"""
-		for job in job_flows:
-			for instance in job.get('instancegroups'):
-				instance_type = instance.get('instancetype')
-				for utilization_class in pool.keys():
-					pool[utilization_class][instance_type] = pool[utilization_class][instance_type]
+	Mutates:
+		pool: for each utilization type, it fills in all the instance_types
+			that any job uses.
+	"""
+	for job in job_flows:
+		for instance in job.get('instancegroups'):
+			instance_type = instance.get('instancetype')
+			for utilization_class in pool.keys():
+				pool[utilization_class][instance_type] = pool[utilization_class][instance_type]
 
+
+def instance_types_in_pool(pool):
+	"""Gets the set of all instance types in
+	a pool or log
+
+	Args:
+		pool: Instances currently owned for each utilization_classization type.
+
+	Returns:
+		A set of all the instances used for all utilization_classization types.
+	"""
+	instance_types = set()
+	for utilization_class in pool:
+		for instance_type in pool[utilization_class]:
+			instance_types.add(instance_type)
+	return instance_types
