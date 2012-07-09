@@ -12,18 +12,41 @@ from simulate_jobs import Simulator, SimulationObserver
 
 class Grapher(object):
     def __init__(self, job_flows, pool, EC2):
+        """Grapher will set up graphs to be shown based
+        on the job flow and pools given.
+
+        Args:
+            job_flows: A list of job flow dict objects that are to
+                be graphed.
+
+            pool: The pool of reserved instances to use for applying
+                usage on the graphs.
+
+            EC2: An EC2Info object to output costs and run simulations.
+
+        """
         self.pool = pool
         self.job_flows = job_flows
         self.EC2 = EC2
         self.colors = self.EC2.color_scheme()
 
     def show(self, total_usage=False, instance_usage=False):
+        """This will make and show the graphs for the grapher class.
+        It will accumulate all the graphs you want to see.
+
+        Args:
+            total_usage: A boolean option to graph total hours used
+                over a job flow history.
+            instance_usage: A boolean option to graph instance usage
+                over a job flow history.
+        """
         if total_usage or instance_usage:
             import matplotlib.dates as mdates
             import matplotlib.pyplot as plt
             self.plt = plt
             self.mdates = mdates
         if total_usage:
+            self._total_hours_graph()
             self.graph_over_time(self.total_hours_over_time,
                 self.total_hours)
         elif instance_usage:
@@ -40,7 +63,7 @@ class Grapher(object):
         self.total_hours_over_time = logged_hours_over_time
         self.total_hours = hours
 
-    def instance_usage_graph(self):
+    def _instance_usage_graph(self):
         """This will graph the instances used and the type of
         instance used over time.
         """

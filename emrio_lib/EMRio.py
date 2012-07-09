@@ -9,8 +9,8 @@ If you are looking for instructions to run the program, look at the
 readme in the root EMRio folder.
 """
 import json
-import sys
 import logging
+import sys
 from optparse import OptionParser
 
 import boto
@@ -18,9 +18,9 @@ import pytz
 
 from ec2_cost import EC2Info
 from ec2_cost import instance_types_in_pool
+from graph_jobs import Grapher
 from job_handler import get_job_flows
 from job_handler import load_job_flows_from_amazon
-from graph_jobs import Grapher
 from optimizer import convert_to_yearly_estimated_hours
 from optimizer import Optimizer
 from simulate_jobs import Simulator

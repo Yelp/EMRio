@@ -1,8 +1,8 @@
 """This module is used for creating instance pools and calculating the
 cost of running EC2 machines.
 
-This class also creates instance pools and logs for storing the hours
-machines run. Their structure is like this:
+This class also creates instance pools and logged hour records for storing
+the hours machines run. Their structure is like this:
 pool = {
     UTILIZATION_LEVEL: {
         INSTANCE_NAME: INSTANCE_COUNT
