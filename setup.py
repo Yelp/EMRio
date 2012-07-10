@@ -38,5 +38,6 @@ setup(
         'console_scripts': [
             'emrio = emrio_lib.EMRio:main'
         ]
-    }
+    },
+    install_requires=['boto>=2.2.0', 'PyYAML', 'simplejson>=2.0.9']
 )
