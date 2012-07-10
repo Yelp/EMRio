@@ -10,7 +10,6 @@ readme in the root EMRio folder.
 """
 import json
 import logging
-import sys
 from optparse import OptionParser
 
 import boto
@@ -37,7 +36,6 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    logging.info('Getting job flows from Amazon...')
     if options.dump:
         logging.info("Dumping job flow history into %s", options.dump)
         write_job_flow_history(options.dump)

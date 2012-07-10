@@ -43,8 +43,12 @@ class Grapher(object):
         """
         self.plt = None
         if total_usage or instance_usage:
-            import matplotlib.dates as mdates
-            import matplotlib.pyplot as plt
+            try:
+                import matplotlib.dates as mdates
+                import matplotlib.pyplot as plt
+            except ImportError:
+                print "You need matplotlib installed to use graphs. Please"
+                " install and try again."
             self.plt = plt
             self.mdates = mdates
         if total_usage:
