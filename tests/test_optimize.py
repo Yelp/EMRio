@@ -6,16 +6,19 @@ from math import ceil
 
 from emrio_lib.optimizer import Optimizer, convert_to_yearly_estimated_hours
 from emrio_lib import ec2_cost
-from test_prices import *
 
 EC2 = ec2_cost.EC2Info("tests/test_prices.yaml")
-print EC2.COST
-BASETIME = datetime.datetime(2012, 5, 20, 5)
 
+BASETIME = datetime.datetime(2012, 5, 20, 5)
 LIGHT_INTERVAL = datetime.timedelta(0, 30000)
 MEDIUM_INTERVAL = datetime.timedelta(0, 50000)
 HEAVY_INTERVAL = datetime.timedelta(0, 80000)
 DEMAND_INTERVAL = datetime.timedelta(0, 2000)
+
+HEAVY_UTIL = "Heavy Utilization"
+MEDIUM_UTIL = "Medium Utilization"
+LIGHT_UTIL = "Light Utilization"
+DEMAND = "On Demand"
 
 INSTANCE_NAME = 'm1.small'
 BASE_INSTANCES = 10
