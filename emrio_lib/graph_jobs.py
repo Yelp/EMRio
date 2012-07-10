@@ -37,9 +37,11 @@ class Grapher(object):
         Args:
             total_usage: A boolean option to graph total hours used
                 over a job flow history.
+
             instance_usage: A boolean option to graph instance usage
                 over a job flow history.
         """
+        self.plt = None
         if total_usage or instance_usage:
             import matplotlib.dates as mdates
             import matplotlib.pyplot as plt

@@ -217,16 +217,14 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
     while True:
         if created_before and created_after and created_before < created_after:
             break
-        logging.disable(logging.DEBUG)
-        logging.disable(logging.ERROR)
-        logging.disable(logging.INFO)
+        boto_logger = logging.getLogger('boto')
+        boto_logger.disabled = True
         try:
             results = emr_conn.describe_jobflows(
                 states=states, jobflow_ids=jobflow_ids,
                 created_after=created_after, created_before=created_before)
         except boto.exception.BotoServerError, ex:
             if 'ValidationError' in ex.body:
-                logging.disable(logging.NOTSET)
                 break
             else:
                 raise

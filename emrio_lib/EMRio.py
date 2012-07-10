@@ -262,9 +262,8 @@ def get_owned_reserved_instances(EC2):
             }
         }
     """
-    logging.disable(logging.INFO)
-    logging.disable(logging.DEBUG)
-    logging.disable(logging.ERROR)
+    boto_logger = logging.getLogger('boto')
+    boto_logger.disabled = True
     ec2_conn = boto.connect_ec2()
     boto_reserved_instances = ec2_conn.get_all_reserved_instances()
     ec2_conn.close()
@@ -274,7 +273,6 @@ def get_owned_reserved_instances(EC2):
         instance_type = reserved_instance.instance_type
         purchased_reserved_instances[utilization_class][instance_type] += (
             reserved_instance.instance_count)
-    logging.disable(logging.NOTSET)
     return purchased_reserved_instances
 
 
