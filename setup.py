@@ -34,4 +34,9 @@ setup(
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
     ],
+    entry_points={
+        'console_scripts': [
+            'emrio = emrio_lib.EMRio:main'
+        ]
+    }
 )

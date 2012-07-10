@@ -341,4 +341,4 @@ def output_statistics(log, pool, demand_log, EC2):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
