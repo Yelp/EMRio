@@ -43,9 +43,9 @@ configuration file. Look at our boto config as an example. Once you fill in
 the AWS key information and region information, copy it to either /etc/boto.
 conf or ~/.boto
 
-After that is setup, `cd` into `emrio` and run:
+After that is setup, run:
 
-	python EMRio.py
+	emrio
 
 This should take a minute or two to grab the information off S3, do a few 
 simulations, and output the resultant optimized instance pool. 
@@ -53,7 +53,7 @@ simulations, and output the resultant optimized instance pool.
 If you want to see instance usage over time (how many instances are running 
 at the same time), you run::
 
-	python EMRio.py --graph cost
+	emrio --graph cost
 
 After it calculates the same data, you will now see graphs of each instance-
 type's usage over time, like this::
@@ -63,17 +63,17 @@ type's usage over time, like this::
 Now, re-calculating the optimal instances is kind of pointless on the same 
 data, so in order to save and load optimal instance configurations, use this:
 
-	python EMRio.py --cache=output.txt
+	emrio --cache=output.txt
 
 If you want to see how this is formatted, check out the tests folder where 
 an example instance file can be found.
 
 Which will save the results in output.txt, and load them like so:
 
-	python EMRio.py --optimized=output.txt
+	emrio --optimized=output.txt
 
 If you want to see all the commands, try `--help`.
 
-	python EMRio.py --help
+	emrio --help
 
 

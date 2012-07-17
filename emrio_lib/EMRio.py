@@ -289,7 +289,7 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool, EC2):
         reserved_instances_to_buy: A dict of instances to buy. Structured like
             pool.
     """
-    calculated_difference = lambda y, x: x if x - y >= 0 else -1
+    calculated_difference = lambda y, x: (x - y) if x - y >= 0 else -1
     reserved_instances_to_buy = EC2.init_empty_reserve_pool()
 
     for utilization_class in optimal_pool:
