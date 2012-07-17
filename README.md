@@ -58,7 +58,7 @@ at the same time), you run::
 After it calculates the same data, you will now see graphs of each instance-
 type's usage over time, like this::
 
-	![picture Graph](https://github.com/Iph/EMRio/raw/master/docs/images/graph.png "Graph")
+![picture Graph](http://github.com/Iph/EMRio/raw/master/docs/images/graph.png)
 
 Now, re-calculating the optimal instances is kind of pointless on the same 
 data, so in order to save and load optimal instance configurations, use this:
