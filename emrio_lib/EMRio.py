@@ -9,6 +9,7 @@ If you are looking for instructions to run the program, look at the
 readme in the root EMRio folder.
 """
 import json
+import locale
 import logging
 from optparse import OptionParser
 
@@ -53,7 +54,6 @@ def main():
                                                                     EC2)
     output_statistics(optimal_logged_hours, pool, demand_logged_hours, EC2)
 
-    logging.info('Making graphs...')
     Grapher(job_flows, pool, EC2).show(total_usage=options.total_usage,
                                         instance_usage=options.instance_usage)
 
@@ -330,13 +330,17 @@ def output_statistics(log, pool, demand_log, EC2):
             print "\t%s: %d" % (machine,
                                 demand_log[utilization_class][machine])
 
+    locale.setlocale(locale.LC_ALL, 'en_us')
+    optimized_cost_fmt = locale.format("%f", optimized_cost)
+    optimized_upfront_cost_fmt = locale.format("%f", optimized_upfront_cost)
+    demand_cost_fmt = locale.format("%f", demand_cost)
+    difference_cost = locale.format("%f", (demand_cost - optimized_cost))
     print
     print "Cost difference:"
-    print "Cost for Reserved Instance: $%.2f " % optimized_cost
-    print "Upfront Cost for all instances: $%.2f" % optimized_upfront_cost
-    print "Cost for all On-Demand: $%.2f" % demand_cost
-    print "Money Saved: $%.2f" % (demand_cost - optimized_cost)
-
+    print "Cost for Reserved Instance: $%s " % optimized_cost_fmt
+    print "Upfront Cost for all instances: $%s" % optimized_upfront_cost_fmt
+    print "Cost for all On-Demand: $%s" % demand_cost_fmt
+    print "Money Saved: $%s" % difference_cost
 
 if __name__ == '__main__':
     main()

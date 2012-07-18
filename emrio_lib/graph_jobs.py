@@ -5,6 +5,7 @@ Once it has that information, it will use hours recorded and matplotlib to make
 graphs from the job flows.
 """
 import copy
+import logging
 
 from ec2_cost import instance_types_in_pool
 from simulate_jobs import Simulator, SimulationObserver
@@ -43,6 +44,7 @@ class Grapher(object):
         """
         self.plt = None
         if total_usage or instance_usage:
+            logging.info("Making graphs...")
             try:
                 import matplotlib.dates as mdates
                 import matplotlib.pyplot as plt

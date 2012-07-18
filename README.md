@@ -63,14 +63,14 @@ type's usage over time, like this::
 Now, re-calculating the optimal instances is kind of pointless on the same 
 data, so in order to save and load optimal instance configurations, use this:
 
-	emrio --cache=output.txt
+	emrio --cache=output.json
 
-If you want to see how this is formatted, check out the tests folder where 
+The format is json encoded, check out the tests folder where 
 an example instance file can be found.
 
 Which will save the results in output.txt, and load them like so:
 
-	emrio --optimized=output.txt
+	emrio --optimized=output.json
 
 If you want to see all the commands, try `--help`.
 
