@@ -301,6 +301,18 @@ def calculate_instances_to_buy(purchased_instances, optimal_pool, EC2):
     return reserved_instances_to_buy
 
 
+def intWithCommas(x):
+    if type(x) not in [type(0), type(0L)]:
+        raise TypeError("Parameter must be an integer.")
+    if x < 0:
+        return '-' + intWithCommas(-x)
+    result = ''
+    while x >= 1000:
+        x, r = divmod(x, 1000)
+        result = ",%03d%s" % (r, result)
+    return "%d%s" % (x, result)
+
+
 def output_statistics(log, pool, demand_log, EC2):
     """Once everything is calculated, output here"""
     EMPTY_INSTANCE_POOL = EC2.init_empty_reserve_pool()
@@ -327,17 +339,16 @@ def output_statistics(log, pool, demand_log, EC2):
     print " Hours Used By Instance type **************"
     for utilization_class in demand_log:
         for machine in demand_log[utilization_class]:
-            print "\t%s: %d" % (machine,
-                                demand_log[utilization_class][machine])
+            print "\t%s: %s" % (machine,
+                    intWithCommas(int(demand_log[utilization_class][machine])))
 
-    locale.setlocale(locale.LC_ALL, 'en_us')
-    optimized_cost_fmt = locale.format("%f", optimized_cost)
-    optimized_upfront_cost_fmt = locale.format("%f", optimized_upfront_cost)
-    demand_cost_fmt = locale.format("%f", demand_cost)
-    difference_cost = locale.format("%f", (demand_cost - optimized_cost))
+    optimized_cost_fmt = intWithCommas(int(optimized_cost))
+    optimized_upfront_cost_fmt = intWithCommas(int(optimized_upfront_cost))
+    demand_cost_fmt = intWithCommas(int(demand_cost))
+    difference_cost = intWithCommas(int(demand_cost - optimized_cost))
     print
     print "Cost difference:"
-    print "Cost for Reserved Instance: $%s " % optimized_cost_fmt
+    print "Cost for Reserved Instance: $%s" % optimized_cost_fmt
     print "Upfront Cost for all instances: $%s" % optimized_upfront_cost_fmt
     print "Cost for all On-Demand: $%s" % demand_cost_fmt
     print "Money Saved: $%s" % difference_cost
