@@ -9,7 +9,7 @@ for the next year.
 
 Introduction
 ------------
-Elastic MapReduce is a service provided by Amazon that makes it easy to use
+[Elastic MapReduce](http://aws.amazon.com/elasticmapreduce/) is a service provided by Amazon that makes it easy to use
 MapReduce. EMR run on machines called EC2 instances. They come in many
 different flavors from heavy memory usage to heavy CPU usage. When businesses
 start using EMR, they use these services as a pay-as-you-go service. After

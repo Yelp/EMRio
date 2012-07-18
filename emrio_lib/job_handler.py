@@ -28,7 +28,7 @@ def get_job_flows(options, timezone):
     if(options.file_inputs):
         job_flows = load_job_flows_from_file(options.file_inputs)
     else:
-        logging.info('Getting job flows from Amazon, this may take a some'
+        logging.info('Getting job flows from Amazon, this may take some'
             'time...')
         job_flows = load_job_flows_from_amazon(options.conf_path,
             options.max_days_ago)
