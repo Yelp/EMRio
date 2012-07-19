@@ -100,9 +100,9 @@ def make_option_parser():
         help='Save the optimized results so you dont calculate them multiple'
         ' times')
     option_parser.add_option(
-        '-g', '--instance_usage', dest='instance_usage', action='store_true',
-        default=False, help='Load a graph of the job flow history instance'
-        ' usage')
+        '-g', '--graph_instance_usage', dest='instance_usage',
+        action='store_true', default=False, help='Load a graph'
+        ' of the job flow history instance usage')
     option_parser.add_option(
         '--total_usage', dest='total_usage', action='store_true',
         default=False, help='Load a graph of total hourly usage for each'

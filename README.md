@@ -64,7 +64,7 @@ simulations, and output the resultant optimized instance pool.
 If you want to see instance usage over time (how many instances are running 
 at the same time), you run::
 
-	emrio --graph cost
+	emrio -g
 
 After it calculates the same data, you will now see graphs of each instance-
 type's usage over time, like this::
