@@ -36,8 +36,6 @@ Dependencies
 *boto
 *tzinfo
 *matplotlib
-How to Run EMRio
-----------------
 
 Installation and Setup
 ----------------------
