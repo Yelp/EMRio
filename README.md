@@ -47,8 +47,6 @@ Then, go to the root directory and run:
 
 `python setup.py`
 
-which will download the commandline emrio tool.
-
 Once you have the dependencies installed, you need to set up your boto 
 configuration file. Look at our boto config as an example. Once you fill in 
 the AWS key information and region information, copy it to either /etc/boto.
