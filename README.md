@@ -33,9 +33,9 @@ produce the best pool of instances to buy.
 
 Dependencies
 ------------
-*boto
-*tzinfo
-*matplotlib
+ * boto
+ * tzinfo
+ * matplotlib
 
 Installation and Setup
 ----------------------
