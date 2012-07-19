@@ -1,0 +1,7 @@
+*.DS_Store
+*.json
+*.swp
+*.pyc
+build/*
+dist/*
+emrio.egg-info/*
