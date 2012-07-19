@@ -1,0 +1,4 @@
+#!/usr/bin/python
+from emrio_lib.EMRio import main
+if __name__ == '__main__':
+    main()
