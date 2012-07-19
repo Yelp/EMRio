@@ -41,7 +41,7 @@ How to Run EMRio
 
 Installation and Setup
 ----------------------
-First, download the source from [here](https://github.com/Iph/EMRio).
+First, download the source
 
 Then, go to the root directory and run:
 
