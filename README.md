@@ -43,7 +43,8 @@ configuration file. Look at our boto config as an example. Once you fill in
 the AWS key information and region information, copy it to either /etc/boto.
 conf or ~/.boto
 
-After that is setup, run:
+After that run `python setup.py`.
+then run:
 
 	emrio
 
