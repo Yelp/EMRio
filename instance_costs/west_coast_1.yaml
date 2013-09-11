@@ -11,58 +11,58 @@ reserve_priorities: [*heavy_util, *medium_util, *light_util]
 
 cost:
   *light_util:
-    m1.small: {upfront: 69, hourly: 0.049}
-    m1.medium: {upfront: 138, hourly: 0.098}
-    m1.large: {upfront: 276, hourly: 0.196}
-    m1.xlarge: {upfront: 552, hourly: 0.392}
+    m1.small: {upfront: 61, hourly: 0.042}
+    m1.medium: {upfront: 122, hourly: 0.085}
+    m1.large: {upfront: 243, hourly: 0.170}
+    m1.xlarge: {upfront: 486, hourly: 0.339}
     micro: {upfront: 23, hourly: 0.015}
-    m2.xlarge: {upfront: 353, hourly: 0.288}
-    m2.2xlarge: {upfront: 706, hourly: 0.576}
-    m2.4xlarge: {upfront: 1412, hourly: 1.152}
-    c1.medium: {upfront: 178, hourly: 0.125}
-    c1.xlarge: {upfront: 712, hourly: 0.5}
+    m2.xlarge: {upfront: 272, hourly: 0.206}
+    m2.2xlarge: {upfront: 544, hourly: 0.412}
+    m2.4xlarge: {upfront: 1088, hourly: 0.824}
+    c1.medium: {upfront: 161, hourly: 0.113}
+    c1.xlarge: {upfront: 644, hourly: 0.452}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *medium_util:
-    m1.small: {upfront: 160, hourly: 0.031}
-    m1.medium: {upfront: 320, hourly: .063}
-    m1.large: {upfront: 640, hourly: .124}
-    m1.xlarge: {upfront: 1280, hourly: .248}
+    m1.small: {upfront: 139, hourly: 0.027}
+    m1.medium: {upfront: 277, hourly: 0.054}
+    m1.large: {upfront: 554, hourly: 0.108}
+    m1.xlarge: {upfront: 1108, hourly: 0.215}
     micro: {upfront: 54, hourly: .01}
-    m2.xlarge: {upfront: 850, hourly: .185}
-    m2.2xlarge: {upfront: 1700, hourly: .37}
-    m2.4xlarge: {upfront: 3400, hourly: .74}
-    c1.medium: {upfront: 415, hourly: .08}
-    c1.xlarge: {upfront: 1660, hourly: .32}
+    m2.xlarge: {upfront: 651, hourly: 0.130}
+    m2.2xlarge: {upfront: 1302, hourly: 0.260}
+    m2.4xlarge: {upfront: 2604, hourly: 0.520}
+    c1.medium: {upfront: 370, hourly: 0.072}
+    c1.xlarge: {upfront: 1480, hourly: 0.288}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *heavy_util:
-    m1.small: {upfront: 414.00, hourly: 0.0}
-    m1.medium: {upfront: 828.00, hourly: 0.0}
-    m1.large: {upfront: 1656.00, hourly: 0.0}
-    m1.xlarge: {upfront: 3312.00, hourly: 0.0}
-    micro: {upfront: 132.08, hourly: 0.0}
-    m2.xlarge: {upfront: 2326.48, hourly: 0.0}
-    m2.2xlarge: {upfront: 4652.96, hourly: 0.0}
-    m2.4xlarge: {upfront: 9305.92, hourly: 0.0}
-    c1.medium: {upfront: 1051.88, hourly: 0.0}
-    c1.xlarge: {upfront: 4190.00, hourly: 0.0}
+    m1.small: {upfront: 169, hourly: 0.022}
+    m1.medium: {upfront: 338, hourly: 0.044}
+    m1.large: {upfront: 676, hourly: 0.087}
+    m1.xlarge: {upfront: 1352, hourly: 0.174}
+    micro: {upfront: 62, hourly: 0.008}
+    m2.xlarge: {upfront: 789, hourly: 0.102}
+    m2.2xlarge: {upfront: 1578, hourly: 0.204}
+    m2.4xlarge: {upfront: 3156, hourly: 0.408}
+    c1.medium: {upfront: 450, hourly: 0.057}
+    c1.xlarge: {upfront: 1800, hourly: 0.228}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *demand:
-    m1.small: {upfront: 0, hourly: 0.09}
-    m1.medium: {upfront: 0, hourly: .18}
-    m1.large: {upfront: 0, hourly: .36}
-    m1.xlarge: {upfront: 0, hourly: .72}
+    m1.small: {upfront: 0, hourly: 0.065}
+    m1.medium: {upfront: 0, hourly: .130}
+    m1.large: {upfront: 0, hourly: .260}
+    m1.xlarge: {upfront: 0, hourly: .520}
     micro: {upfront: 0, hourly: .025}
-    m2.xlarge: {upfront: 0, hourly: .506}
-    m2.2xlarge: {upfront: 0, hourly: 1.012}
-    m2.4xlarge: {upfront: 0, hourly: 2.024}
-    c1.medium: {upfront: 0, hourly: .186}
-    c1.xlarge: {upfront: 0, hourly: .744}
+    m2.xlarge: {upfront: 0, hourly: .460}
+    m2.2xlarge: {upfront: 0, hourly: 0.920}
+    m2.4xlarge: {upfront: 0, hourly: 1.840}
+    c1.medium: {upfront: 0, hourly: .165}
+    c1.xlarge: {upfront: 0, hourly: .660}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
