@@ -5,9 +5,10 @@
 HEAVY_UTIL: &heavy_util "Heavy Utilization"
 MEDIUM_UTIL: &medium_util "Medium Utilization"
 LIGHT_UTIL: &light_util "Light Utilization"
+FULL_UTIL: &full_util "Full Utilization"
 DEMAND: &demand "On Demand"
 
-reserve_priorities: [*heavy_util, *medium_util, *light_util]
+reserve_priorities: [*full_util, *heavy_util, *medium_util, *light_util]
 
 cost:
   *light_util:
@@ -49,6 +50,20 @@ cost:
     m2.4xlarge: {upfront: 3156, hourly: 0.408}
     c1.medium: {upfront: 450, hourly: 0.057}
     c1.xlarge: {upfront: 1800, hourly: 0.228}
+    cc1.4xlarge: {upfront: .inf, hourly: .inf}
+    cc2.8xlarge: {upfront: .inf, hourly: .inf}
+    cg1.4xlarge: {upfront: .inf, hourly: .inf}
+  *full_util:
+    m1.small: {upfront: 326, hourly: 0.0}
+    m1.medium: {upfront: 651, hourly: 0.0}
+    m1.large: {upfront: 1295, hourly: 0.0}
+    m1.xlarge: {upfront: 2589, hourly: 0.0}
+    micro: {upfront: 119, hourly: 0.0}
+    m2.xlarge: {upfront: 1515, hourly: 0.0}
+    m2.2xlarge: {upfront: 3037, hourly: 0.0}
+    m2.4xlarge: {upfront: 6057, hourly: 0.0}
+    c1.medium: {upfront: 855, hourly: 0.0}
+    c1.xlarge: {upfront: 3418, hourly: 0.0}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
