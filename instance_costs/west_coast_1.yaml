@@ -1,68 +1,83 @@
-# West Coast(North California) 1 Year Prices as of 6/14/2012
+# West Coast(North California) 1 Year Prices as of 3/12/2014
 # data taken from: 
 # http://aws.amazon.com/ec2/pricing
 
 HEAVY_UTIL: &heavy_util "Heavy Utilization"
 MEDIUM_UTIL: &medium_util "Medium Utilization"
 LIGHT_UTIL: &light_util "Light Utilization"
+FIXED_PRICE: &fixed_price "Fixed Price"
 DEMAND: &demand "On Demand"
 
-reserve_priorities: [*heavy_util, *medium_util, *light_util]
+reserve_priorities: [*fixed_price, *heavy_util, *medium_util, *light_util]
 
 cost:
   *light_util:
-    m1.small: {upfront: 69, hourly: 0.049}
-    m1.medium: {upfront: 138, hourly: 0.098}
-    m1.large: {upfront: 276, hourly: 0.196}
-    m1.xlarge: {upfront: 552, hourly: 0.392}
+    m1.small: {upfront: 61, hourly: 0.042}
+    m1.medium: {upfront: 122, hourly: 0.085}
+    m1.large: {upfront: 243, hourly: 0.17}
+    m1.xlarge: {upfront: 486, hourly: 0.339}
     micro: {upfront: 23, hourly: 0.015}
-    m2.xlarge: {upfront: 353, hourly: 0.288}
-    m2.2xlarge: {upfront: 706, hourly: 0.576}
-    m2.4xlarge: {upfront: 1412, hourly: 1.152}
-    c1.medium: {upfront: 178, hourly: 0.125}
-    c1.xlarge: {upfront: 712, hourly: 0.5}
+    m2.xlarge: {upfront: 272, hourly: 0.206}
+    m2.2xlarge: {upfront: 544, hourly: 0.412}
+    m2.4xlarge: {upfront: 1088, hourly: 0.824}
+    c1.medium: {upfront: 161, hourly: 0.113}
+    c1.xlarge: {upfront: 644, hourly: 0.452}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *medium_util:
-    m1.small: {upfront: 160, hourly: 0.031}
-    m1.medium: {upfront: 320, hourly: .063}
-    m1.large: {upfront: 640, hourly: .124}
-    m1.xlarge: {upfront: 1280, hourly: .248}
+    m1.small: {upfront: 139, hourly: 0.027}
+    m1.medium: {upfront: 277, hourly: 0.054}
+    m1.large: {upfront: 554, hourly: 0.108}
+    m1.xlarge: {upfront: 1108, hourly: 0.215}
     micro: {upfront: 54, hourly: .01}
-    m2.xlarge: {upfront: 850, hourly: .185}
-    m2.2xlarge: {upfront: 1700, hourly: .37}
-    m2.4xlarge: {upfront: 3400, hourly: .74}
-    c1.medium: {upfront: 415, hourly: .08}
-    c1.xlarge: {upfront: 1660, hourly: .32}
+    m2.xlarge: {upfront: 651, hourly: 0.13}
+    m2.2xlarge: {upfront: 1302, hourly: 0.26}
+    m2.4xlarge: {upfront: 2604, hourly: 0.52}
+    c1.medium: {upfront: 370, hourly: 0.072}
+    c1.xlarge: {upfront: 1480, hourly: .288}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *heavy_util:
-    m1.small: {upfront: 414.00, hourly: 0.0}
-    m1.medium: {upfront: 828.00, hourly: 0.0}
-    m1.large: {upfront: 1656.00, hourly: 0.0}
-    m1.xlarge: {upfront: 3312.00, hourly: 0.0}
+    m1.small: {upfront: 361.72, hourly: 0.0}
+    m1.medium: {upfront: 723.44, hourly: 0.0}
+    m1.large: {upfront: 1438.12, hourly: 0.0}
+    m1.xlarge: {upfront: 2876.24, hourly: 0.0}
     micro: {upfront: 132.08, hourly: 0.0}
-    m2.xlarge: {upfront: 2326.48, hourly: 0.0}
-    m2.2xlarge: {upfront: 4652.96, hourly: 0.0}
-    m2.4xlarge: {upfront: 9305.92, hourly: 0.0}
-    c1.medium: {upfront: 1051.88, hourly: 0.0}
-    c1.xlarge: {upfront: 4190.00, hourly: 0.0}
+    m2.xlarge: {upfront: 1682.52, hourly: 0.0}
+    m2.2xlarge: {upfront: 3365.04, hourly: 0.0}
+    m2.4xlarge: {upfront: 6660, hourly: 0.0}
+    c1.medium: {upfront: 949.32, hourly: 0.0}
+    c1.xlarge: {upfront: 3797.28, hourly: 0.0}
+    cc1.4xlarge: {upfront: .inf, hourly: .inf}
+    cc2.8xlarge: {upfront: .inf, hourly: .inf}
+    cg1.4xlarge: {upfront: .inf, hourly: .inf}
+  *fixed_price:
+    m1.small: {upfront: 361.72, hourly: 0.0}
+    m1.medium: {upfront: 723.44, hourly: 0.0}
+    m1.large: {upfront: 1438.12, hourly: 0.0}
+    m1.xlarge: {upfront: 2876.24, hourly: 0.0}
+    micro: {upfront: 132.08, hourly: 0.0}
+    m2.xlarge: {upfront: 1682.52, hourly: 0.0}
+    m2.2xlarge: {upfront: 3365.04, hourly: 0.0}
+    m2.4xlarge: {upfront: 6660, hourly: 0.0}
+    c1.medium: {upfront: 949.32, hourly: 0.0}
+    c1.xlarge: {upfront: 3797.28, hourly: 0.0}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}
   *demand:
-    m1.small: {upfront: 0, hourly: 0.09}
-    m1.medium: {upfront: 0, hourly: .18}
-    m1.large: {upfront: 0, hourly: .36}
-    m1.xlarge: {upfront: 0, hourly: .72}
+    m1.small: {upfront: 0, hourly: 0.065}
+    m1.medium: {upfront: 0, hourly: .13}
+    m1.large: {upfront: 0, hourly: .26}
+    m1.xlarge: {upfront: 0, hourly: .52}
     micro: {upfront: 0, hourly: .025}
-    m2.xlarge: {upfront: 0, hourly: .506}
-    m2.2xlarge: {upfront: 0, hourly: 1.012}
-    m2.4xlarge: {upfront: 0, hourly: 2.024}
-    c1.medium: {upfront: 0, hourly: .186}
-    c1.xlarge: {upfront: 0, hourly: .744}
+    m2.xlarge: {upfront: 0, hourly: .46}
+    m2.2xlarge: {upfront: 0, hourly: 0.92}
+    m2.4xlarge: {upfront: 0, hourly: 1.84}
+    c1.medium: {upfront: 0, hourly: .165}
+    c1.xlarge: {upfront: 0, hourly: .66}
     cc1.4xlarge: {upfront: .inf, hourly: .inf}
     cc2.8xlarge: {upfront: .inf, hourly: .inf}
     cg1.4xlarge: {upfront: .inf, hourly: .inf}

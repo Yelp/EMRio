@@ -59,6 +59,7 @@ class Optimizer(object):
         convert_to_yearly_estimated_hours(logged_hours,
             self.job_flows_interval)
         current_min_cost, _ = self.EC2.calculate_cost(logged_hours, pool)
+        logging.debug('Current min cost: %s' % str(current_min_cost))
         current_cost = current_min_cost
         delta_reserved_hours = (
             self.delta_reserved_instance_hours_generator(instance_type, pool))

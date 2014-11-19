@@ -118,7 +118,11 @@ def parse_date(str_date, timezone=None):
 
     Returns: datetime.datetime object in UTC tz.
     """
-    current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
+    try:
+        current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        current_date = datetime.datetime.strptime(str_date, "%Y-%m-%dT%H:%M:%SZ")
+
     current_date = current_date.replace(tzinfo=timezone)
     return current_date
 
@@ -153,8 +157,9 @@ def load_job_flows_from_amazon(conf_path, max_days_ago):
     for job in job_flows:
         job_dict = job.__dict__
         new_list = []
-        for instance in job.instancegroups:
-            new_list.append(instance.__dict__)
+        for instancegroup in job.instancegroups:
+            if instancegroup.market != 'SPOT':
+                new_list.append(instancegroup.__dict__)
         job_dict['instancegroups'] = new_list
         dict_job_flows.append(job_dict)
     job_flows = dict_job_flows
@@ -178,7 +183,6 @@ def get_job_flow_objects(conf_path, max_days_ago=None, now=None):
     """
     if now is None:
         now = datetime.datetime.utcnow()
-    emr_conn = None
     emr_conn = EmrConnection()
     # if --max-days-ago is set, only look at recent jobs
     created_after = None
@@ -248,6 +252,7 @@ def describe_all_job_flows(emr_conn, states=None, jobflow_ids=None,
             # but this seems unlikely. :)
         else:
             if not created_before:
-                created_before = datetime.utcnow()
+                created_before = datetime.datetime.utcnow()
             created_before -= datetime.timedelta(weeks=2)
+
     return all_job_flows

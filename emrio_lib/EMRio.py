@@ -267,7 +267,7 @@ def get_owned_reserved_instances(EC2):
     ec2_conn.close()
     purchased_reserved_instances = EC2.init_empty_reserve_pool()
     for reserved_instance in boto_reserved_instances:
-        utilization_class = reserved_instance.offeringType
+        utilization_class = reserved_instance.offering_type
         instance_type = reserved_instance.instance_type
         purchased_reserved_instances[utilization_class][instance_type] += (
             reserved_instance.instance_count)
@@ -348,7 +348,7 @@ def output_statistics(log, pool, demand_log, EC2):
     difference_cost = intWithCommas(int(demand_cost - optimized_cost))
     print
     print "Cost difference:"
-    print "Cost for Reserved Instance: $%s" % optimized_cost_fmt
+    print "Hourly cost for all instance: $%s" % optimized_cost_fmt
     print "Upfront Cost for all instances: $%s" % optimized_upfront_cost_fmt
     print "Cost for all On-Demand: $%s" % demand_cost_fmt
     print "Money Saved: $%s" % difference_cost

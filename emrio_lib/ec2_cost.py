@@ -19,6 +19,7 @@ logged_hours: are pools that count the amount of hours that instances run for,
 """
 
 import copy
+import math
 import yaml
 from collections import defaultdict
 
@@ -43,7 +44,7 @@ class EC2Info(object):
             self.COST = datamap['cost']
             self.RESERVE_PRIORITIES = datamap['reserve_priorities']
         except IOError:
-            raise Exception("Wrong yaml filename.")
+            raise Exception("Wrong yaml filename: %s" % filename)
         except Exception:
             raise Exception("Wrong yaml format from file provided.")
         # Copy reserve_priorities since we want to preserve priority order.
@@ -73,9 +74,12 @@ class EC2Info(object):
         cost = 0.0
         for utilization_class in pool:
             for instance_type in pool[utilization_class]:
-                upfront_cost += (
+                g = (
                     self.COST[utilization_class][instance_type]['upfront'] *
                     pool[utilization_class][instance_type])
+                if math.isnan(float(g)):
+                    g = 1e12
+                upfront_cost += g
         # Hourly cost calculation
         for utilization_class in logged_hours:
             for instance_type in logged_hours[utilization_class]:
